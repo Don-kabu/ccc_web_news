@@ -34,3 +34,26 @@ coverage
 
 # Vitest
 __screenshots__/
+
+# Environment variables (keep local copies only)
+.env.local
+.env.*.local
+
+# Deployment
+.vercel
+.netlify
+
+# Docker
+docker-compose.override.yml
+
+# Sentry
+.sentryclirc
+
+# Firebase
+.firebase
+firebase-debug.log
+firestore-debug.log
+
+# PM2
+ecosystem.config.js.local
+logs/

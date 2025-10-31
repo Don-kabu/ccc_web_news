@@ -1,15 +1,28 @@
 {
   "name": "ccc_web_news",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
+  "description": "Plateforme de gestion des actualités universitaires",
+  "keywords": ["vue", "news", "university", "platform"],
+  "author": "CCC Team",
+  "license": "MIT",
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:analyze": "vite build --mode analyze",
+    "deploy:vercel": "npx vercel --prod",
+    "deploy:netlify": "npx netlify deploy --prod --dir=dist",
+    "deploy:surge": "npm run build && npx surge dist ccc-web-news.surge.sh",
+    "deploy:firebase": "npm run build && firebase deploy",
+    "docker:build": "docker build -t ccc-web-news .",
+    "docker:run": "docker run -p 80:80 ccc-web-news",
+    "lint": "echo 'Linting not configured yet'",
+    "test": "echo 'Tests not configured yet'"
   },
   "dependencies": {
     "vue": "^3.5.22"
