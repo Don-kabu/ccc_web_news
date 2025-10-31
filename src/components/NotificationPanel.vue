@@ -412,20 +412,146 @@ onUnmounted(() => {
   .notifications-panel {
     max-width: none;
     width: 100%;
+    right: 0;
+    left: 0;
+    top: 60px;
+    border-radius: 0;
+    max-height: calc(100vh - 60px);
   }
   
   .notifications-header {
     padding: 1rem;
   }
   
+  .notifications-header h3 {
+    font-size: 1.1rem;
+  }
+  
   .notification-item {
     padding: 0.75rem 1rem;
+  }
+  
+  .notification-item h4 {
+    font-size: 0.9rem;
+  }
+  
+  .notification-item p {
+    font-size: 0.8rem;
+  }
+  
+  .notification-time {
+    font-size: 0.75rem;
   }
   
   .header-actions {
     flex-direction: column;
     gap: 0.5rem;
     align-items: flex-end;
+  }
+  
+  .header-actions button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .notifications-panel {
+    top: 55px;
+    max-height: calc(100vh - 55px);
+  }
+  
+  .notifications-header {
+    padding: 0.75rem;
+  }
+  
+  .notifications-header h3 {
+    font-size: 1rem;
+  }
+  
+  .notification-item {
+    padding: 0.6rem 0.75rem;
+  }
+  
+  .notification-item h4 {
+    font-size: 0.85rem;
+    line-height: 1.3;
+  }
+  
+  .notification-item p {
+    font-size: 0.75rem;
+  }
+  
+  .notification-time {
+    font-size: 0.7rem;
+  }
+  
+  .priority-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+  }
+  
+  .notification-dot {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .header-actions button {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .notifications-panel {
+    top: 50px;
+    max-height: calc(100vh - 50px);
+  }
+  
+  .notifications-header {
+    padding: 0.5rem;
+  }
+  
+  .notifications-header h3 {
+    font-size: 0.9rem;
+  }
+  
+  .notification-item {
+    padding: 0.5rem;
+  }
+  
+  .notification-item h4 {
+    font-size: 0.8rem;
+  }
+  
+  .notification-item p {
+    font-size: 0.7rem;
+  }
+  
+  .header-actions {
+    flex-direction: row;
+    gap: 0.25rem;
+  }
+  
+  .header-actions button {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+  }
+}
+
+/* Landscape orientation optimizations */
+@media (max-height: 500px) and (orientation: landscape) {
+  .notifications-panel {
+    max-height: 90vh;
+    top: 45px;
+  }
+  
+  .notifications-header {
+    padding: 0.5rem 1rem;
+  }
+  
+  .notification-item {
+    padding: 0.5rem 1rem;
   }
 }
 </style>

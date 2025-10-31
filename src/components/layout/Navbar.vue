@@ -479,6 +479,7 @@ const handleLogout = () => {
   .navbar-container {
     padding: 1rem;
     gap: 1rem;
+    flex-wrap: wrap;
   }
   
   .brand-info h2 {
@@ -489,17 +490,150 @@ const handleLogout = () => {
     display: none;
   }
   
+  .nav-tabs {
+    order: 3;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
   .nav-tab {
     padding: 0.5rem 1rem;
     font-size: 0.8rem;
+    flex: 1;
+    min-width: auto;
+    justify-content: center;
   }
   
   .nav-tab span {
     display: none;
   }
   
+  .navbar-user {
+    gap: 0.75rem;
+  }
+  
   .user-info {
     display: none;
+  }
+  
+  .dropdown-menu {
+    right: 0;
+    left: auto;
+    min-width: 200px;
+  }
+  
+  .notifications-button {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .navbar-container {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+  
+  .brand-info h2 {
+    font-size: 0.9rem;
+  }
+  
+  .nav-tabs {
+    gap: 0.25rem;
+  }
+  
+  .nav-tab {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    border-radius: 6px;
+  }
+  
+  .nav-tab svg {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .navbar-user {
+    gap: 0.5rem;
+  }
+  
+  .notifications-button {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .user-button {
+    padding: 0.5rem;
+  }
+  
+  .user-avatar svg {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .dropdown-menu {
+    min-width: 180px;
+    right: -0.5rem;
+  }
+  
+  .dropdown-item {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .navbar-container {
+    padding: 0.5rem;
+  }
+  
+  .brand-info h2 {
+    font-size: 0.8rem;
+  }
+  
+  .nav-tab {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.7rem;
+  }
+  
+  .nav-tab svg {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .notifications-button {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .notification-badge {
+    font-size: 0.55rem;
+    min-width: 1rem;
+    height: 1rem;
+  }
+}
+
+/* Landscape orientation optimizations */
+@media (max-height: 500px) and (orientation: landscape) {
+  .navbar-container {
+    padding: 0.5rem 1rem;
+  }
+  
+  .nav-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .nav-tab {
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 }
 </style>

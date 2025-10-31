@@ -908,6 +908,13 @@ onMounted(() => {
 }
 
 /* Responsive */
+@media (max-width: 1200px) {
+  .profile-container {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
 @media (max-width: 768px) {
   .user-profile {
     padding: 1rem;
@@ -919,8 +926,39 @@ onMounted(() => {
     gap: 1rem;
   }
   
+  .profile-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .role-badge {
+    font-size: 0.875rem;
+    padding: 0.4rem 0.8rem;
+  }
+  
+  .avatar {
+    width: 80px;
+    height: 80px;
+  }
+  
   .form-row {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .form-group label {
+    font-size: 0.875rem;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+    gap: 0.75rem;
   }
   
   .security-item {
@@ -929,8 +967,174 @@ onMounted(() => {
     text-align: center;
   }
   
+  .security-info h3 {
+    font-size: 1rem;
+  }
+  
+  .security-info p {
+    font-size: 0.875rem;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .stat-card h3 {
+    font-size: 1.5rem;
+  }
+  
+  .stat-card p {
+    font-size: 0.875rem;
+  }
+  
+  .modal-content {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+  }
+  
   .modal-actions {
     flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .user-profile {
+    padding: 0.75rem;
+  }
+  
+  .profile-header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .role-badge {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.6rem;
+  }
+  
+  .avatar {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .card {
+    padding: 1rem;
+  }
+  
+  .card h2 {
+    font-size: 1.1rem;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  .stat-card {
+    padding: 1rem;
+  }
+  
+  .stat-card h3 {
+    font-size: 1.25rem;
+  }
+  
+  .security-item {
+    padding: 1rem;
+  }
+  
+  .security-info h3 {
+    font-size: 0.9rem;
+  }
+  
+  .security-info p {
+    font-size: 0.8rem;
+  }
+  
+  .modal-content {
+    margin: 0.5rem;
+    max-width: calc(100vw - 1rem);
+  }
+  
+  .modal-header h3 {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .user-profile {
+    padding: 0.5rem;
+  }
+  
+  .profile-header {
+    gap: 0.75rem;
+  }
+  
+  .profile-header h1 {
+    font-size: 1.1rem;
+  }
+  
+  .card {
+    padding: 0.75rem;
+  }
+  
+  .card h2 {
+    font-size: 1rem;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  .stat-card {
+    padding: 0.75rem;
+  }
+  
+  .stat-card h3 {
+    font-size: 1.1rem;
+  }
+  
+  .stat-card p {
+    font-size: 0.8rem;
+  }
+  
+  .security-item {
+    padding: 0.75rem;
+  }
+  
+  .modal-content {
+    margin: 0.25rem;
+    max-width: calc(100vw - 0.5rem);
+    padding: 1rem;
+  }
+}
+
+/* Landscape orientation optimizations */
+@media (max-height: 500px) and (orientation: landscape) {
+  .profile-header {
+    flex-direction: row;
+    text-align: left;
+    gap: 1.5rem;
+  }
+  
+  .avatar {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
   }
 }
 </style>

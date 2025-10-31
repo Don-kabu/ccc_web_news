@@ -610,6 +610,184 @@ onMounted(() => {
   background: var(--border-light);
 }
 
+@media (max-width: 768px) {
+  .login-container {
+    padding: 1rem;
+  }
+  
+  .login-form {
+    padding: 2rem 1.5rem;
+    max-width: 100%;
+    margin: 1rem auto;
+  }
+  
+  .form-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .form-header p {
+    font-size: 0.9rem;
+  }
+  
+  .university-selector {
+    gap: 0.75rem;
+  }
+  
+  .university-card {
+    padding: 1rem;
+    min-height: auto;
+  }
+  
+  .university-card h3 {
+    font-size: 1rem;
+  }
+  
+  .form-group label {
+    font-size: 0.875rem;
+  }
+  
+  .form-group input {
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+  
+  .form-actions {
+    gap: 0.75rem;
+  }
+  
+  .modal-content {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+    padding: 1.5rem;
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 0.5rem;
+  }
+  
+  .login-form {
+    padding: 1.5rem 1rem;
+    margin: 0.5rem auto;
+    border-radius: 12px;
+  }
+  
+  .form-header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .form-header p {
+    font-size: 0.85rem;
+  }
+  
+  .university-selector {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .university-card {
+    padding: 0.75rem;
+  }
+  
+  .university-card h3 {
+    font-size: 0.9rem;
+  }
+  
+  .university-card p {
+    font-size: 0.8rem;
+  }
+  
+  .form-group input {
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+  
+  .form-actions button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .modal-content {
+    margin: 0.5rem;
+    max-width: calc(100vw - 1rem);
+    padding: 1rem;
+  }
+  
+  .modal-header h3 {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .login-form {
+    padding: 1rem 0.75rem;
+    margin: 0.25rem auto;
+  }
+  
+  .form-header h1 {
+    font-size: 1.1rem;
+  }
+  
+  .form-header p {
+    font-size: 0.8rem;
+  }
+  
+  .university-card {
+    padding: 0.5rem;
+  }
+  
+  .university-card h3 {
+    font-size: 0.85rem;
+  }
+  
+  .university-card p {
+    font-size: 0.75rem;
+  }
+  
+  .form-group input {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  .form-actions button {
+    padding: 0.6rem 1.25rem;
+    font-size: 0.85rem;
+  }
+  
+  .modal-content {
+    margin: 0.25rem;
+    max-width: calc(100vw - 0.5rem);
+    padding: 0.75rem;
+  }
+}
+
+/* Landscape orientation optimizations */
+@media (max-height: 500px) and (orientation: landscape) {
+  .login-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+  
+  .login-form {
+    max-height: 90vh;
+    overflow-y: auto;
+    margin: 0;
+  }
+  
+  .university-selector {
+    max-height: 200px;
+    overflow-y: auto;
+  }
+}
+
 @media (max-width: 640px) {
   .modal-content {
     margin: 1rem;

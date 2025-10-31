@@ -1,0 +1,251 @@
+/* ===== RESPONSIVE UTILITIES ===== */
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+  button,
+  .button,
+  .clickable {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.75rem 1rem;
+  }
+  
+  .nav-tab {
+    min-height: 48px;
+  }
+  
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Accessibility improvements for small screens */
+@media (max-width: 480px) {
+  /* Larger touch targets */
+  button:not(.icon-only),
+  .button:not(.icon-only) {
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+  }
+  
+  /* Better readability */
+  body {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  
+  /* Improved form controls */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+    border-radius: 8px;
+  }
+  
+  /* Better spacing */
+  .card,
+  .modal-content {
+    border-radius: 12px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border-color: #000000;
+    --text-color: #000000;
+    --background-color: #ffffff;
+  }
+  
+  .card,
+  .button,
+  input,
+  select,
+  textarea {
+    border: 2px solid var(--border-color);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  .floating-cards {
+    animation: none;
+  }
+}
+
+/* Print styles */
+@media print {
+  .navbar,
+  .notification-panel,
+  .floating-action-button,
+  .modal-overlay {
+    display: none !important;
+  }
+  
+  .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .card {
+    break-inside: avoid;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+  }
+  
+  a {
+    text-decoration: underline !important;
+  }
+  
+  .article-card,
+  .news-card {
+    page-break-inside: avoid;
+  }
+}
+
+/* Focus management for keyboard navigation */
+@media (any-hover: none) {
+  .dropdown:hover .dropdown-menu {
+    display: none;
+  }
+  
+  .dropdown.open .dropdown-menu {
+    display: block;
+  }
+}
+
+/* Safe area insets for devices with notches */
+@supports (padding: max(0px)) {
+  .navbar-container {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  
+  .main-content {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+  
+  .modal-content {
+    margin-left: max(1rem, env(safe-area-inset-left));
+    margin-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* Grid system utilities */
+.grid-responsive {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+@media (max-width: 768px) {
+  .grid-responsive {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .grid-responsive {
+    gap: 0.5rem;
+  }
+}
+
+/* Flex utilities */
+.flex-responsive {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .flex-responsive {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+/* Typography scale */
+@media (max-width: 768px) {
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+  h3 { font-size: 1.125rem; }
+  h4 { font-size: 1rem; }
+  h5 { font-size: 0.875rem; }
+  h6 { font-size: 0.75rem; }
+}
+
+@media (max-width: 480px) {
+  h1 { font-size: 1.25rem; }
+  h2 { font-size: 1.125rem; }
+  h3 { font-size: 1rem; }
+  h4 { font-size: 0.875rem; }
+  h5 { font-size: 0.8rem; }
+  h6 { font-size: 0.75rem; }
+}
+
+/* Utility classes */
+.hide-mobile {
+  display: block;
+}
+
+.show-mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .hide-mobile {
+    display: none;
+  }
+  
+  .show-mobile {
+    display: block;
+  }
+}
+
+.hide-tablet {
+  display: block;
+}
+
+.show-tablet {
+  display: none;
+}
+
+@media (max-width: 1024px) {
+  .hide-tablet {
+    display: none;
+  }
+  
+  .show-tablet {
+    display: block;
+  }
+}
+
+/* Scrollbar styles for mobile */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+  }
+}

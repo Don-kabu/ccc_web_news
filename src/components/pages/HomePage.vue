@@ -561,6 +561,21 @@ const openArticle = (article) => {
   font-size: 0.875rem;
 }
 
+@media (max-width: 1200px) {
+  .hero-section {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+  
+  .news-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .actions-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .home-page {
     padding: 1rem;
@@ -574,18 +589,178 @@ const openArticle = (article) => {
   
   .hero-title {
     font-size: 2rem;
+    line-height: 1.2;
+  }
+  
+  .hero-subtitle {
+    font-size: 1rem;
   }
   
   .hero-stats {
     justify-content: center;
+    gap: 1.5rem;
+  }
+  
+  .stat-number {
+    font-size: 1.8rem;
+  }
+  
+  .floating-cards {
+    transform: scale(0.8);
   }
   
   .news-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
   
   .actions-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .action-card h3 {
+    font-size: 1.1rem;
+  }
+  
+  .action-card p {
+    font-size: 0.875rem;
+  }
+  
+  .section-title {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .home-page {
+    padding: 0.75rem;
+  }
+  
+  .hero-section {
+    padding: 1.5rem 0;
+    gap: 1.5rem;
+  }
+  
+  .hero-title {
+    font-size: 1.5rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .hero-stats {
+    gap: 1rem;
+  }
+  
+  .stat-item {
+    text-align: center;
+  }
+  
+  .stat-number {
+    font-size: 1.5rem;
+  }
+  
+  .stat-label {
+    font-size: 0.75rem;
+  }
+  
+  .floating-cards {
+    transform: scale(0.6);
+  }
+  
+  .card {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .news-grid {
+    gap: 0.75rem;
+  }
+  
+  .news-card {
+    padding: 1rem;
+  }
+  
+  .news-card h3 {
+    font-size: 1rem;
+  }
+  
+  .news-card p {
+    font-size: 0.8rem;
+  }
+  
+  .action-card {
+    padding: 1rem;
+  }
+  
+  .action-card h3 {
+    font-size: 1rem;
+  }
+  
+  .action-card p {
+    font-size: 0.8rem;
+  }
+  
+  .section-title {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .home-page {
+    padding: 0.5rem;
+  }
+  
+  .hero-title {
+    font-size: 1.25rem;
+  }
+  
+  .hero-subtitle {
+    font-size: 0.8rem;
+  }
+  
+  .hero-stats {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .stat-number {
+    font-size: 1.25rem;
+  }
+  
+  .floating-cards {
+    display: none;
+  }
+  
+  .news-card {
+    padding: 0.75rem;
+  }
+  
+  .action-card {
+    padding: 0.75rem;
+  }
+  
+  .section-title {
+    font-size: 1.1rem;
+  }
+}
+
+/* Landscape orientation optimizations */
+@media (max-height: 500px) and (orientation: landscape) {
+  .hero-section {
+    padding: 1rem 0;
+    gap: 1.5rem;
+  }
+  
+  .hero-visual {
+    display: none;
+  }
+  
+  .hero-stats {
+    flex-direction: row;
+    gap: 2rem;
   }
 }
 </style>

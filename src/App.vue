@@ -737,4 +737,263 @@ body {
     transform: scale(1) translateY(0);
   }
 }
+
+/* === RESPONSIVE DESIGN === */
+
+/* Large screens (desktops) */
+@media (min-width: 1200px) {
+  .app-container {
+    max-width: 1600px;
+  }
+  
+  .main-content {
+    padding: 3rem;
+  }
+  
+  .auth-wrapper {
+    max-width: 1000px;
+    padding: 4rem;
+  }
+}
+
+/* Medium screens (laptops, large tablets) */
+@media (max-width: 1024px) {
+  .app-container {
+    max-width: 100%;
+  }
+  
+  .main-content {
+    padding: 2rem 1.5rem;
+  }
+  
+  .auth-wrapper {
+    max-width: 800px;
+    padding: 2.5rem;
+  }
+  
+  .notifications-container {
+    max-width: 350px;
+  }
+}
+
+/* Small screens (tablets) */
+@media (max-width: 768px) {
+  #app {
+    padding: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .auth-container {
+    padding: 1rem;
+    min-height: 100vh;
+  }
+  
+  .auth-wrapper {
+    padding: 2rem;
+    margin: 1rem 0;
+    border-radius: 16px;
+    max-width: 100%;
+  }
+  
+  .logo-section {
+    flex-direction: column;
+    gap: 0.5rem;
+    text-align: center;
+  }
+  
+  .title-section h1 {
+    font-size: 1.5rem;
+  }
+  
+  .title-section p {
+    font-size: 0.9rem;
+  }
+  
+  .auth-nav {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .nav-button {
+    width: 100%;
+    padding: 1rem;
+    text-align: center;
+  }
+  
+  .main-interface {
+    min-height: 100vh;
+  }
+  
+  .main-content {
+    padding: 1rem;
+    max-width: 100%;
+  }
+  
+  .notifications-overlay {
+    padding: 0.5rem;
+    padding-top: 4rem;
+    justify-content: center;
+  }
+  
+  .notifications-container {
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  .modal-content {
+    max-width: 100%;
+    margin: 1rem;
+    max-height: 85vh;
+  }
+  
+  .access-denied {
+    padding: 1rem;
+    min-height: 50vh;
+  }
+  
+  .access-denied-content {
+    max-width: 100%;
+    text-align: center;
+  }
+  
+  .access-denied-content h2 {
+    font-size: 1.25rem;
+  }
+  
+  .access-denied-content svg {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* Extra small screens (phones) */
+@media (max-width: 480px) {
+  #app {
+    padding: 0;
+  }
+  
+  .auth-container {
+    padding: 0.5rem;
+  }
+  
+  .auth-wrapper {
+    padding: 1.5rem;
+    margin: 0.5rem;
+    border-radius: 12px;
+  }
+  
+  .title-section h1 {
+    font-size: 1.25rem;
+  }
+  
+  .title-section p {
+    font-size: 0.85rem;
+  }
+  
+  .logo-section img {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .nav-button {
+    padding: 0.875rem;
+    font-size: 0.9rem;
+  }
+  
+  .main-content {
+    padding: 0.75rem;
+  }
+  
+  .notifications-overlay {
+    padding: 0.25rem;
+    padding-top: 3.5rem;
+  }
+  
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+  
+  .modal-content {
+    margin: 0.5rem;
+    border-radius: 12px;
+  }
+  
+  .primary-button {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9rem;
+  }
+  
+  .secondary-button {
+    padding: 0.875rem 1.25rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Ultra small screens (very small phones) */
+@media (max-width: 360px) {
+  .auth-wrapper {
+    padding: 1rem;
+    margin: 0.25rem;
+  }
+  
+  .title-section h1 {
+    font-size: 1.125rem;
+  }
+  
+  .logo-section img {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .nav-button {
+    padding: 0.75rem;
+    font-size: 0.85rem;
+  }
+  
+  .primary-button,
+  .secondary-button {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Landscape orientation on mobile */
+@media (max-height: 500px) and (orientation: landscape) {
+  .auth-container {
+    padding: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .auth-wrapper {
+    margin: 0.5rem 0;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .logo-section {
+    margin-bottom: 0.5rem;
+  }
+  
+  .auth-nav {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .auth-container,
+  .main-interface {
+    background: white !important;
+  }
+  
+  .auth-wrapper {
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+  }
+  
+  .notifications-overlay,
+  .modal-overlay {
+    display: none !important;
+  }
+}
 </style>
