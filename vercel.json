@@ -2,7 +2,7 @@
   "version": 2,
   "name": "ccc-web-news",
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
+  "outputDirectory": "apps/univernews-git-main-don-kabus-projects.vercel.app/output/static",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "rewrites": [

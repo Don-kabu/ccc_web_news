@@ -1,0 +1,67 @@
+# Dependencies
+node_modules
+.npm
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Development files
+.env.local
+.env.*.local
+src
+public
+
+# Testing
+coverage
+.vitest
+
+# Editor directories and files
+.vscode
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+DEPLOYMENT.md
+ENDPOINTS.md
+*.md
+
+# Config files not needed for deployment
+vite.config.js
+jsconfig.json
+ecosystem.config.js
+docker-compose.yml
+Dockerfile
+nginx.conf
+
+# Deployment configs for other platforms
+netlify.toml
+.github
+deploy.sh
