@@ -201,6 +201,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { authService, universityService } from '@/services'
 
 // Émissions
 const emit = defineEmits(['login-success', 'switch-to-register'])
@@ -235,48 +236,25 @@ const handleLogin = async () => {
   errorMessage.value = ''
 
   try {
-    // Simulation d'une authentification
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    // Utiliser le service d'authentification
+    const response = await authService.login({
+      email: loginForm.email,
+      password: loginForm.password
+    })
 
-    // Récupérer les utilisateurs depuis localStorage
-    const users = JSON.parse(localStorage.getItem('ccc_users') || '[]')
-    const user = users.find(u => u.email === loginForm.email && u.password === loginForm.password)
-
-    if (!user) {
-      throw new Error('Email ou mot de passe incorrect')
-    }
-
-    // Migrer l'ancien système de rôles vers le nouveau si nécessaire
-    if (user.role && !['ADMIN', 'MODERATOR', 'PUBLIANT', 'STUDENT'].includes(user.role)) {
-      // Migration des anciens rôles
-      const roleMigration = {
-        'admin': 'ADMIN',
-        'moderator': 'MODERATOR',
-        'teacher': 'PUBLIANT',
-        'staff': 'PUBLIANT',
-        'student': 'STUDENT'
+    if (response.status === 'success') {
+      // Si "Se souvenir de moi" est coché
+      if (loginForm.rememberMe) {
+        localStorage.setItem('remembered_user', JSON.stringify(response.data.user))
       }
-      user.role = roleMigration[user.role] || 'STUDENT'
-    }
 
-    // Mettre à jour le last_login
-    user.last_login = new Date().toISOString()
-    
-    // Sauvegarder les modifications
-    const userIndex = users.findIndex(u => u.id === user.id)
-    if (userIndex !== -1) {
-      users[userIndex] = user
-      localStorage.setItem('ccc_users', JSON.stringify(users))
+      emit('login-success', response.data.user)
+    } else {
+      throw new Error(response.message || 'Erreur de connexion')
     }
-
-    // Si "Se souvenir de moi" est coché
-    if (loginForm.rememberMe) {
-      localStorage.setItem('remembered_user', JSON.stringify(user))
-    }
-
-    emit('login-success', user)
   } catch (error) {
-    errorMessage.value = error.message
+    console.error('Erreur de connexion:', error)
+    errorMessage.value = error.message || 'Email ou mot de passe incorrect'
   } finally {
     isLoading.value = false
   }
@@ -287,8 +265,6 @@ const handleJoinUniversity = async () => {
   errorMessage.value = ''
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
     // Récupérer l'université sélectionnée
     const selectedUniversity = availableUniversities.value.find(u => u.id === joinForm.university_id)
     
@@ -296,33 +272,26 @@ const handleJoinUniversity = async () => {
       throw new Error('Veuillez sélectionner une institution')
     }
 
-    // Créer un nouvel utilisateur
-    const newUser = {
-      id: Date.now(),
+    // Utiliser le service d'authentification pour l'inscription
+    const response = await authService.register({
       email: joinForm.email,
       password: joinForm.password,
-      role: joinForm.role || 'STUDENT', // Rôle par défaut STUDENT
+      role: joinForm.role || 'STUDENT',
       university_id: selectedUniversity.id,
-      university: selectedUniversity,
-      first_name: '',
-      last_name: '',
-      username: joinForm.email.split('@')[0],
-      faculty: '',
-      department: '',
-      is_verified: true,
-      created_at: new Date().toISOString(),
-      last_login: null
+      firstname: '',
+      lastname: '',
+      username: joinForm.email.split('@')[0]
+    })
+
+    if (response.status === 'success') {
+      closeJoinUniversityForm()
+      emit('login-success', response.data.user)
+    } else {
+      throw new Error(response.message || 'Erreur lors de l\'inscription')
     }
-
-    // Sauvegarder l'utilisateur
-    const users = JSON.parse(localStorage.getItem('ccc_users') || '[]')
-    users.push(newUser)
-    localStorage.setItem('ccc_users', JSON.stringify(users))
-
-    closeJoinUniversityForm()
-    emit('login-success', newUser)
   } catch (error) {
-    errorMessage.value = error.message
+    console.error('Erreur d\'inscription:', error)
+    errorMessage.value = error.message || 'Erreur lors de l\'inscription'
   } finally {
     isLoading.value = false
   }
@@ -337,24 +306,55 @@ const closeJoinUniversityForm = () => {
     password: '',
     role: ''
   })
+  errorMessage.value = ''
+}
+
+const openJoinUniversityForm = () => {
+  showJoinUniversityForm.value = true
+}
+
+// Charger les universités au montage du composant
+const loadUniversities = async () => {
+  try {
+    const response = await universityService.getUniversities({
+      status: 'active',
+      limit: 100
+    })
+    
+    if (response.status === 'success') {
+      availableUniversities.value = response.data.universities || response.data
+    }
+  } catch (error) {
+    console.error('Erreur lors du chargement des universités:', error)
+    // Fallback vers localStorage en cas d'erreur API
+    const universities = JSON.parse(localStorage.getItem('ccc_universities') || '[]')
+    availableUniversities.value = universities
+  }
+}
+
+// Vérifier s'il y a un utilisateur mémorisé
+const checkRememberedUser = () => {
+  const rememberedUser = localStorage.getItem('remembered_user')
+  if (rememberedUser) {
+    try {
+      const user = JSON.parse(rememberedUser)
+      loginForm.email = user.email
+      loginForm.rememberMe = true
+    } catch (error) {
+      console.error('Erreur lors du chargement de l\'utilisateur mémorisé:', error)
+    }
+  }
 }
 
 const loadAvailableUniversities = () => {
-  const universities = JSON.parse(localStorage.getItem('universities') || '[]')
+  const universities = JSON.parse(localStorage.getItem('ccc_universities') || '[]')
   availableUniversities.value = universities
 }
 
 // Initialisation
 onMounted(() => {
-  loadAvailableUniversities()
-  
-  // Charger l'utilisateur mémorisé s'il existe
-  const rememberedUser = localStorage.getItem('remembered_user')
-  if (rememberedUser) {
-    const user = JSON.parse(rememberedUser)
-    loginForm.email = user.email
-    loginForm.rememberMe = true
-  }
+  loadUniversities()
+  checkRememberedUser()
 })
 </script>
 

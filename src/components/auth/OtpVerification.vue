@@ -212,21 +212,18 @@ const handleVerifyOtp = async () => {
       otp_code: null
     }
 
-    // Sauvegarder dans localStorage
-    const users = JSON.parse(localStorage.getItem('ccc_users') || '[]')
-    users.push(verifiedUser)
-    localStorage.setItem('ccc_users', JSON.stringify(users))
-
-    const universities = JSON.parse(localStorage.getItem('universities') || '[]')
-    universities.push(props.userData.university)
-    localStorage.setItem('universities', JSON.stringify(universities))
+    // Mettre à jour les données temporaires
+    const verifiedData = {
+      user: verifiedUser,
+      university: props.userData.university
+    }
 
     // Afficher l'animation de succès
     showSuccessAnimation.value = true
 
-    // Attendre un peu puis émettre le succès
+    // Attendre un peu puis émettre le succès avec les données vérifiées
     setTimeout(() => {
-      emit('verification-success')
+      emit('verification-success', verifiedData)
     }, 2000)
 
   } catch (error) {

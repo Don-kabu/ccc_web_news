@@ -523,7 +523,8 @@ const handleSubmit = async () => {
       university_id: props.currentUser.university_id,
       likes: 0,
       views: 0,
-      status: 'pending' // Tous les articles sont en attente de modération par défaut
+      // Statut selon le rôle de l'utilisateur
+      status: (['ADMIN', 'MODERATOR'].includes(props.currentUser.role)) ? 'approved' : 'pending'
     }
     
     // Sauvegarder dans localStorage
@@ -741,15 +742,67 @@ const handleSubmit = async () => {
 }
 
 /* Responsive */
+@media (max-width: 1200px) {
+  .publish-container {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .publish-form {
+    order: 1;
+  }
+  
+  .preview-panel {
+    order: 2;
+  }
+}
+
 @media (max-width: 768px) {
+  .publish-page {
+    padding: 1rem;
+  }
+  
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .form-group label {
+    font-size: 0.875rem;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+  
+  .textarea-container textarea {
+    min-height: 120px;
+  }
+  
   .file-upload-area {
     padding: 1.5rem;
+  }
+  
+  .upload-text h3 {
+    font-size: 1rem;
+  }
+  
+  .upload-text p {
+    font-size: 0.875rem;
   }
   
   .attachment-item {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
+    padding: 0.75rem;
   }
   
   .attachment-preview {
@@ -761,8 +814,161 @@ const handleSubmit = async () => {
     width: 100%;
   }
   
+  .attachment-info h4 {
+    font-size: 0.9rem;
+  }
+  
+  .attachment-info p {
+    font-size: 0.8rem;
+  }
+  
   .remove-attachment {
     align-self: center;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .preview-panel {
+    position: static;
+    height: auto;
+    max-height: none;
+  }
+  
+  .preview-content {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .publish-page {
+    padding: 0.75rem;
+  }
+  
+  .page-header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+  
+  .textarea-container {
+    min-height: 100px;
+  }
+  
+  .textarea-counter {
+    font-size: 0.75rem;
+  }
+  
+  .file-upload-area {
+    padding: 1rem;
+  }
+  
+  .upload-text h3 {
+    font-size: 0.9rem;
+  }
+  
+  .upload-text p {
+    font-size: 0.8rem;
+  }
+  
+  .attachment-item {
+    padding: 0.5rem;
+  }
+  
+  .attachment-preview img,
+  .attachment-preview video {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .form-actions button {
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .preview-panel h3 {
+    font-size: 1rem;
+  }
+  
+  .preview-content {
+    padding: 0.75rem;
+    max-height: 300px;
+  }
+  
+  .preview-category {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .publish-page {
+    padding: 0.5rem;
+  }
+  
+  .page-header h1 {
+    font-size: 1.1rem;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  .file-upload-area {
+    padding: 0.75rem;
+  }
+  
+  .attachment-item {
+    padding: 0.4rem;
+  }
+  
+  .attachment-preview img,
+  .attachment-preview video {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .form-actions button {
+    padding: 0.6rem 1.25rem;
+    font-size: 0.85rem;
+  }
+  
+  .preview-content {
+    padding: 0.5rem;
+    max-height: 250px;
+  }
+}
+
+/* Landscape orientation optimizations */
+@media (max-height: 500px) and (orientation: landscape) {
+  .publish-container {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  
+  .preview-panel {
+    position: static;
+    height: auto;
+    max-height: 80vh;
+  }
+  
+  .textarea-container textarea {
+    min-height: 80px;
+  }
+  
+  .file-upload-area {
+    padding: 1rem;
   }
 }
 

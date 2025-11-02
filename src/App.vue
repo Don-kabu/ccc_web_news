@@ -1,5 +1,8 @@
 <template>
   <div id="app">
+    <!-- Composant de test API (temporaire) -->
+    <ApiTest />
+    
     <div class="app-container">
       <!-- Vue d'authentification -->
       <div v-if="!isAuthenticated" class="auth-container">
@@ -192,9 +195,12 @@ import AdminPage from './components/pages/AdminPage.vue'
 import UserProfile from './components/pages/UserProfile.vue'
 import NotificationPanel from './components/NotificationPanel.vue'
 import NotificationSettings from './components/pages/NotificationSettings.vue'
+import ApiTest from './components/ApiTest.vue'
 import { usePermissions } from './composables/usePermissions.js'
 import { PERMISSIONS } from './composables/usePermissions.js'
 import { notificationService } from './services/notificationService.js'
+import { authService } from './services/auth.service.js'
+import { universityService } from './services/university.service.js'
 
 // État de navigation
 const currentView = ref('login') // 'login', 'register'
@@ -226,34 +232,106 @@ const canManageUsers = computed(() => {
 const isAuthenticated = computed(() => currentUser.value !== null)
 
 // Gestion de l'authentification
-const handleLoginSuccess = (user) => {
-  // Enrichir l'utilisateur avec les données de l'université
-  const universities = JSON.parse(localStorage.getItem('ccc_universities') || '[]')
-  const university = universities.find(u => u.id === user.university_id)
+const handleLoginSuccess = async (user) => {
+  try {
+    // Enrichir l'utilisateur avec les données de l'université si nécessaire
+    if (user.university_id && !user.university) {
+      const universityResponse = await universityService.getUniversityById(user.university_id)
+      if (universityResponse.status === 'success') {
+        user.university = universityResponse.data
+      }
+    }
+    
+    currentUser.value = user
+    
+    // Initialiser le service de notifications
+    notificationService.initializeUser(user.id)
+    updateNotificationCount()
+  } catch (error) {
+    console.error('Erreur lors de l\'enrichissement des données utilisateur:', error)
+    // Continuer avec les données de base
+    currentUser.value = user
+    notificationService.initializeUser(user.id)
+    updateNotificationCount()
+  }
+}
+
+const handleRegisterSuccess = async ({ user, university }) => {
+  let newUser // Déclarer la variable au niveau de la fonction
   
-  if (university) {
-    user.university = university
+  try {
+    // Créer l'université via l'API
+    let universityData = university
+    if (!university.id) {
+      const universityResponse = await universityService.createUniversity(university)
+      if (universityResponse.status === 'success') {
+        universityData = universityResponse.data
+      }
+    }
+
+    // L'inscription devrait déjà avoir été gérée par le service d'authentification
+    // Mais on peut enrichir les données si nécessaire
+    newUser = {
+      ...user,
+      role: 'ADMIN', // S'assurer que le créateur d'université est admin
+      university_id: universityData.id,
+      university: universityData,
+      is_verified: true,
+      last_login: new Date().toISOString()
+    }
+    
+    // Connecter automatiquement l'utilisateur
+    currentUser.value = newUser
+    
+    // Initialiser le service de notifications
+    notificationService.initializeUser(newUser.id)
+    updateNotificationCount()
+  } catch (error) {
+    console.error('Erreur lors de l\'inscription:', error)
+    // Fallback vers localStorage si l'API échoue
+    const existingUsers = JSON.parse(localStorage.getItem('ccc_users') || '[]')
+    const existingUniversities = JSON.parse(localStorage.getItem('ccc_universities') || '[]')
+    
+    existingUniversities.push(university)
+    localStorage.setItem('ccc_universities', JSON.stringify(existingUniversities))
+    
+    newUser = {
+      ...user,
+      role: 'ADMIN',
+      university_id: university.id,
+      university: university,
+      is_verified: true,
+      last_login: new Date().toISOString()
+    }
+    
+    existingUsers.push(newUser)
+    localStorage.setItem('ccc_users', JSON.stringify(existingUsers))
+    localStorage.setItem('ccc_currentUser', JSON.stringify(newUser))
+    
+    currentUser.value = newUser
+    notificationService.initializeUser(newUser.id)
+    updateNotificationCount()
   }
   
-  currentUser.value = user
-  localStorage.setItem('currentUser', JSON.stringify(user))
-  
-  // Initialiser le service de notifications
-  notificationService.initializeUser(user.id)
-  updateNotificationCount()
-}
-
-const handleRegisterSuccess = ({ user, university }) => {
-  alert('Institution créée avec succès ! Vous pouvez maintenant vous connecter.')
-  currentView.value = 'login'
-}
-
-const handleLogout = () => {
-  currentUser.value = null
+  alert(`Bienvenue ${newUser.first_name} ! Vous êtes maintenant administrateur de ${university.name}.`)
+  currentView.value = 'app'
   activeTab.value = 'accueil'
-  showNotifications.value = false
-  showNotificationSettings.value = false
-  localStorage.removeItem('currentUser')
+}
+
+const handleLogout = async () => {
+  try {
+    // Utiliser le service d'authentification pour la déconnexion
+    await authService.logout()
+  } catch (error) {
+    console.error('Erreur lors de la déconnexion:', error)
+  } finally {
+    // Nettoyer l'état local dans tous les cas
+    currentUser.value = null
+    activeTab.value = 'accueil'
+    showNotifications.value = false
+    showNotificationSettings.value = false
+    currentView.value = 'login'
+  }
 }
 
 // Gestion de la navigation
@@ -329,45 +407,64 @@ const handleNotificationSettings = () => {
 }
 
 // Initialisation
-onMounted(() => {
-  // Vérifier si l'utilisateur est déjà connecté
-  const savedUser = localStorage.getItem('currentUser')
-  if (savedUser) {
-    const user = JSON.parse(savedUser)
+onMounted(async () => {
+  try {
+    // Vérifier le statut d'authentification via l'API
+    const isAuthenticated = await authService.checkAuthStatus()
     
-    // Enrichir avec les données de l'université si elles ne sont pas déjà présentes
-    if (!user.university && user.university_id) {
-      const universities = JSON.parse(localStorage.getItem('ccc_universities') || '[]')
-      const university = universities.find(u => u.id === user.university_id)
-      if (university) {
-        user.university = university
-        localStorage.setItem('currentUser', JSON.stringify(user))
+    if (isAuthenticated) {
+      // L'utilisateur est connecté, récupérer ses informations
+      const user = authService.getCurrentUser()
+      if (user) {
+        currentUser.value = user
+        currentView.value = 'app'
+        notificationService.initializeUser(user.id)
+        updateNotificationCount()
+      }
+    } else {
+      // Vérifier s'il y a un utilisateur mémorisé en local
+      const rememberedUser = localStorage.getItem('remembered_user')
+      if (rememberedUser) {
+        try {
+          const user = JSON.parse(rememberedUser)
+          // Ne pas connecter automatiquement, juste pré-remplir le formulaire
+          // Le LoginForm gérera cela
+        } catch (error) {
+          console.error('Erreur lors du chargement de l\'utilisateur mémorisé:', error)
+          localStorage.removeItem('remembered_user')
+        }
       }
     }
+  } catch (error) {
+    console.error('Erreur lors de l\'initialisation:', error)
     
-    currentUser.value = user
-    notificationService.initializeUser(currentUser.value.id)
-    updateNotificationCount()
+    // Fallback vers localStorage si l'API n'est pas disponible
+    const savedUser = localStorage.getItem('currentUser') || localStorage.getItem('ccc_currentUser')
+    if (savedUser) {
+      try {
+        const user = JSON.parse(savedUser)
+        
+        // Enrichir avec les données de l'université si nécessaire
+        if (!user.university && user.university_id) {
+          const universities = JSON.parse(localStorage.getItem('ccc_universities') || '[]')
+          const university = universities.find(u => u.id === user.university_id)
+          if (university) {
+            user.university = university
+          }
+        }
+        
+        currentUser.value = user
+        currentView.value = 'app'
+        notificationService.initializeUser(user.id)
+        updateNotificationCount()
+      } catch (parseError) {
+        console.error('Erreur lors du parsing des données utilisateur:', parseError)
+      }
+    }
   }
   
-  // Vérifier si l'utilisateur était mémorisé
-  const rememberedUser = localStorage.getItem('remembered_user')
-  if (rememberedUser && !currentUser.value) {
-    const user = JSON.parse(rememberedUser)
-    
-    // Enrichir avec les données de l'université si elles ne sont pas déjà présentes
-    if (!user.university && user.university_id) {
-      const universities = JSON.parse(localStorage.getItem('ccc_universities') || '[]')
-      const university = universities.find(u => u.id === user.university_id)
-      if (university) {
-        user.university = university
-      }
-    }
-    
-    currentUser.value = user
-    notificationService.initializeUser(currentUser.value.id)
-    updateNotificationCount()
-  }
+  // Mettre à jour le compteur de notifications
+  updateNotificationCount()
   
   // Initialiser le service de notifications
   notificationService.initialize()

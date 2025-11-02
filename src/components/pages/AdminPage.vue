@@ -1029,35 +1029,268 @@ const formatDate = (dateString) => {
   background: #e5e7eb;
 }
 
+@media (max-width: 1200px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .settings-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .admin-page {
     padding: 1rem;
   }
   
+  .page-header h1 {
+    font-size: 1.5rem;
+  }
+  
   .admin-tabs {
     flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .admin-tab {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    text-align: center;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .stat-card {
+    padding: 1rem;
+  }
+  
+  .stat-card h3 {
+    font-size: 1.5rem;
   }
   
   .users-header {
     flex-direction: column;
     align-items: stretch;
+    gap: 1rem;
   }
   
   .users-actions {
     flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .search-box {
+    flex: 1;
   }
   
   .search-box input {
     min-width: auto;
+    padding: 0.75rem;
+    font-size: 1rem;
+  }
+  
+  .filters select {
+    padding: 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .users-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .users-table table {
+    min-width: 600px;
+  }
+  
+  .users-table th,
+  .users-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
   }
   
   .settings-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .setting-card {
+    padding: 1rem;
+  }
+  
+  .setting-card h3 {
+    font-size: 1rem;
   }
   
   .overview-card {
     flex-direction: column;
     text-align: center;
+    gap: 1rem;
+  }
+  
+  .overview-icon {
+    align-self: center;
+  }
+  
+  .modal-content {
+    margin: 1rem;
+    max-width: calc(100vw - 2rem);
+  }
+  
+  .modal-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-page {
+    padding: 0.75rem;
+  }
+  
+  .page-header h1 {
+    font-size: 1.25rem;
+  }
+  
+  .admin-tab {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  
+  .stat-card {
+    padding: 0.75rem;
+  }
+  
+  .stat-card h3 {
+    font-size: 1.25rem;
+  }
+  
+  .stat-card p {
+    font-size: 0.875rem;
+  }
+  
+  .search-box input {
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+  
+  .filters select {
+    padding: 0.6rem;
+    font-size: 0.8rem;
+  }
+  
+  .users-table th,
+  .users-table td {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.8rem;
+  }
+  
+  .action-btn {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+  }
+  
+  .setting-card {
+    padding: 0.75rem;
+  }
+  
+  .setting-card h3 {
+    font-size: 0.9rem;
+  }
+  
+  .setting-card p {
+    font-size: 0.8rem;
+  }
+  
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+  
+  .modal-content {
+    margin: 0.5rem;
+    max-width: calc(100vw - 1rem);
+    padding: 1rem;
+  }
+  
+  .modal-header h3 {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .admin-page {
+    padding: 0.5rem;
+  }
+  
+  .page-header h1 {
+    font-size: 1.1rem;
+  }
+  
+  .admin-tab {
+    padding: 0.5rem 0.6rem;
+    font-size: 0.75rem;
+  }
+  
+  .stat-card {
+    padding: 0.5rem;
+  }
+  
+  .stat-card h3 {
+    font-size: 1.1rem;
+  }
+  
+  .stat-card p {
+    font-size: 0.8rem;
+  }
+  
+  .search-box input {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  .filters select {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .users-table th,
+  .users-table td {
+    padding: 0.4rem 0.2rem;
+    font-size: 0.75rem;
+  }
+  
+  .setting-card {
+    padding: 0.5rem;
+  }
+  
+  .modal-content {
+    margin: 0.25rem;
+    max-width: calc(100vw - 0.5rem);
+    padding: 0.75rem;
+  }
+}
+
+/* Landscape orientation optimizations */
+@media (max-height: 500px) and (orientation: landscape) {
+  .admin-tabs {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  
+  .modal-content {
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 </style>

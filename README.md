@@ -4,11 +4,20 @@ Plateforme moderne de gestion des actualités universitaires développée avec V
 
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.5.22-4FC08D?style=for-the-badge&logo=vue.js&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-7.1.11-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![Responsive](https://img.shields.io/badge/Design-Responsive-blue?style=for-the-badge&logo=css3&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)
 
 ## 🌟 Fonctionnalités
 
-### 🔐 Authentification et gestion des utilisateurs
+### � **NOUVEAU** - Design Responsive Complet
+- ✅ **Support multi-appareils** : Mobile, Tablette, Desktop
+- ✅ **5 breakpoints** optimisés (360px à 1200px+)
+- ✅ **61 media queries** pour une adaptation parfaite
+- ✅ **Touch-friendly** avec targets >= 44px
+- ✅ **Accessibilité** : Contraste élevé, mouvement réduit
+- ✅ **Performance** maintenue sur tous appareils
+
+### �🔐 Authentification et gestion des utilisateurs
 - ✅ Système d'inscription multi-université
 - ✅ Authentification sécurisée avec rôles (Admin, Modérateur, Publiant, Étudiant)
 - ✅ Gestion des profils utilisateurs
@@ -35,6 +44,24 @@ Plateforme moderne de gestion des actualités universitaires développée avec V
 - ✅ Vue d'ensemble des actualités
 - ✅ Statistiques de publication et consultation
 - ✅ Interface d'administration complète
+
+## 📱 Test du Design Responsif
+
+```bash
+# Démarrer le serveur de développement
+npm run dev
+
+# Tester automatiquement le responsive
+./test-responsive.sh
+```
+
+**URL de test** : http://localhost:5174
+
+### Breakpoints supportés
+- 📱 **Mobile** : 360px - 767px
+- 📟 **Tablette** : 768px - 1023px  
+- 💻 **Desktop** : 1024px - 1199px
+- 🖥️ **Large Desktop** : 1200px+
 
 ## 🚀 Déploiement rapide
 

@@ -49,6 +49,9 @@
           <div class="meta">
             <span class="org-badge">{{ getOrgLabel(article.organization_level) }}</span>
             <span class="cat-badge" :class="getCategoryClass(article.category)">{{ getCategoryLabel(article.category) }}</span>
+            <span v-if="article.status === 'pending'" class="status-badge pending">En attente</span>
+            <span v-else-if="article.status === 'approved'" class="status-badge approved">Publié</span>
+            <span v-else-if="article.status === 'rejected'" class="status-badge rejected">Rejeté</span>
             <time>{{ formatDate(article.created_at) }}</time>
           </div>
 
@@ -152,9 +155,16 @@ onMounted(() => {
 
 const loadNews = () => {
   const saved = JSON.parse(localStorage.getItem('ccc_news') || '[]')
-  // Filtrer seulement les articles approuvés
+  // Filtrer les articles selon le rôle de l'utilisateur
   news.value = saved
-    .filter(article => article.status === 'approved')
+    .filter(article => {
+      // Admins et modérateurs voient tous les articles
+      if (['ADMIN', 'MODERATOR'].includes(props.currentUser.role)) {
+        return true
+      }
+      // Les autres voient les articles approuvés + leurs propres articles
+      return article.status === 'approved' || article.author.id === props.currentUser.id
+    })
     .map(a => ({ organization_level: a.organization_level || 'university', ...a }))
   loading.value = false
 }
@@ -401,6 +411,34 @@ watch([activeOrgTab, searchQuery, selectedCategory, sortBy], () => { currentPage
   background: rgba(239, 68, 68, 0.1);
   color: #dc2626;
   animation: pulse-urgent 2s infinite;
+}
+
+/* Badges de statut */
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.status-badge.pending {
+  background: rgba(234, 179, 8, 0.1);
+  color: #ca8a04;
+  border: 1px solid rgba(234, 179, 8, 0.2);
+}
+
+.status-badge.approved {
+  background: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.status-badge.rejected {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
 }
 
 @keyframes pulse-urgent {

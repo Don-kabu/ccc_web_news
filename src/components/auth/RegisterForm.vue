@@ -468,8 +468,9 @@ const handleRegister = async () => {
   }
 }
 
-const handleOtpSuccess = () => {
-  emit('register-success', pendingUserData.value)
+const handleOtpSuccess = (verifiedData) => {
+  // Émettre les données vérifiées au lieu des données temporaires
+  emit('register-success', verifiedData || pendingUserData.value)
   showOtpPage.value = false
 }
 </script>
