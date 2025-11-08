@@ -7,18 +7,43 @@ Plateforme moderne de gestion des actualités universitaires développée avec V
 ![Responsive](https://img.shields.io/badge/Design-Responsive-blue?style=for-the-badge&logo=css3&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)
 
+![Interface Principale](docs/photo/homepage.png)
+
+## 🚀 Démarrage Rapide
+
+```bash
+# Installation et lancement
+npm install
+npm run dev
+```
+
+**➡️ [Guide d'Installation Détaillé](docs/INSTALLATION-RAPIDE.md)**
+
+## 📚 Documentation Complète
+
+### 👤 **Pour les Utilisateurs**
+- 📖 **[Guide Utilisateur Complet](docs/GUIDE-UTILISATEUR-COMPLET.md)** - Manuel d'utilisation illustré
+- ⚡ **[Installation Rapide](docs/INSTALLATION-RAPIDE.md)** - Commencer en 5 minutes
+
+### 👨‍💻 **Pour les Développeurs** 
+- 🔧 **[Documentation Technique](docs/DOCUMENTATION-TECHNIQUE-COMPLETE.md)** - Architecture et API
+- 💻 **[Guide de Développement](docs/GUIDE-DEVELOPPEMENT.md)** - Conventions et contribution
+
+### 📸 **Captures d'Écran**
+Découvrez l'interface avec nos [captures d'écran détaillées](docs/photo/) :
+- [Processus d'inscription](docs/photo/register1.png)
+- [Vérification OTP](docs/photo/verifyopt.png)
+- [Interface de publication](docs/photo/publish.png)
+- [Tableau de bord admin](docs/photo/statistics.png)
+
+---
+
 ## 🌟 Fonctionnalités
 
-### � **NOUVEAU** - Design Responsive Complet
-- ✅ **Support multi-appareils** : Mobile, Tablette, Desktop
-- ✅ **5 breakpoints** optimisés (360px à 1200px+)
-- ✅ **61 media queries** pour une adaptation parfaite
-- ✅ **Touch-friendly** avec targets >= 44px
-- ✅ **Accessibilité** : Contraste élevé, mouvement réduit
-- ✅ **Performance** maintenue sur tous appareils
+![Interface de connexion](docs/photo/login.png)
 
-### �🔐 Authentification et gestion des utilisateurs
-- ✅ Système d'inscription multi-université
+### 🔐 Authentification et gestion des utilisateurs
+- ✅ Système d'inscription multi-université avec vérification OTP
 - ✅ Authentification sécurisée avec rôles (Admin, Modérateur, Publiant, Étudiant)
 - ✅ Gestion des profils utilisateurs
 - ✅ Système de permissions granulaire
@@ -29,9 +54,11 @@ Plateforme moderne de gestion des actualités universitaires développée avec V
 - ✅ Interface de publication intuitive
 - ✅ Gestion des brouillons et planification
 
+![Interface de publication](docs/photo/publish.png)
+
 ### 🔔 Système de notifications
 - ✅ Notifications en temps réel
-- ✅ Paramètres personnalisables (fréquence, canaux)
+- ✅ Paramètres personnalisables
 - ✅ Support digest quotidien/hebdomadaire
 - ✅ Notifications urgentes prioritaires
 
@@ -44,6 +71,16 @@ Plateforme moderne de gestion des actualités universitaires développée avec V
 - ✅ Vue d'ensemble des actualités
 - ✅ Statistiques de publication et consultation
 - ✅ Interface d'administration complète
+
+![Statistiques](docs/photo/statistics.png)
+
+### 📱 **NOUVEAU** - Design Responsive Complet
+- ✅ **Support multi-appareils** : Mobile, Tablette, Desktop
+- ✅ **5 breakpoints** optimisés (360px à 1200px+)
+- ✅ **61 media queries** pour une adaptation parfaite
+- ✅ **Touch-friendly** avec targets >= 44px
+- ✅ **Accessibilité** : Contraste élevé, mouvement réduit
+- ✅ **Performance** maintenue sur tous appareils
 
 ## 📱 Test du Design Responsif
 

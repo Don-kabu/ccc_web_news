@@ -1,0 +1,181 @@
+/* Styles adaptatifs pour ModerationPage avec thème jour/nuit */
+
+.moderation-page {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+.moderation-page .page-header h1 {
+  color: var(--color-text-primary);
+}
+
+.moderation-page .subtitle {
+  color: var(--color-text-secondary);
+}
+
+.moderation-page .stat-card {
+  background-color: var(--color-card-bg);
+  border: 1px solid var(--color-card-border);
+  box-shadow: var(--color-card-shadow);
+}
+
+.moderation-page .stat-info h3 {
+  color: var(--color-text-primary);
+}
+
+.moderation-page .stat-info p {
+  color: var(--color-text-secondary);
+}
+
+.moderation-page .filters {
+  background-color: var(--color-card-bg);
+  border: 1px solid var(--color-card-border);
+  box-shadow: var(--color-card-shadow);
+}
+
+.moderation-page .filter-group label {
+  color: var(--color-text-primary);
+}
+
+.moderation-page .filter-group select {
+  background-color: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
+  color: var(--color-input-text);
+}
+
+.moderation-page .search-box input {
+  background-color: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
+  color: var(--color-input-text);
+}
+
+.moderation-page .articles-section {
+  background-color: var(--color-card-bg);
+  border: 1px solid var(--color-card-border);
+  box-shadow: var(--color-card-shadow);
+}
+
+.moderation-page .article-card {
+  background-color: var(--color-card-bg);
+  border: 1px solid var(--color-card-border);
+}
+
+.moderation-page .article-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.moderation-page .article-header h3 {
+  color: var(--color-text-primary);
+}
+
+.moderation-page .article-content {
+  color: var(--color-text-secondary);
+}
+
+.moderation-page .article-author span {
+  color: var(--color-text-primary);
+}
+
+.moderation-page .publish-date {
+  color: var(--color-text-muted);
+}
+
+.moderation-page .article-actions .btn-approve {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.moderation-page .article-actions .btn-approve:hover {
+  background-color: var(--color-success);
+  filter: brightness(0.9);
+}
+
+.moderation-page .article-actions .btn-reject {
+  background-color: var(--color-error);
+  color: white;
+}
+
+.moderation-page .article-actions .btn-reject:hover {
+  background-color: var(--color-error);
+  filter: brightness(0.9);
+}
+
+.moderation-page .reject-form {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+}
+
+.moderation-page .reject-form textarea {
+  background-color: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
+  color: var(--color-input-text);
+}
+
+.moderation-page .empty-state {
+  color: var(--color-text-secondary);
+}
+
+.moderation-page .loading-spinner {
+  color: var(--color-primary);
+}
+
+.moderation-page .error-message {
+  background-color: var(--color-error-light);
+  color: var(--color-error);
+  border: 1px solid var(--color-error);
+}
+
+/* Badges de statut avec couleurs adaptatives */
+.moderation-page .status-badge.pending {
+  background-color: var(--color-warning);
+  color: white;
+}
+
+.moderation-page .status-badge.approved {
+  background-color: var(--color-success);
+  color: white;
+}
+
+.moderation-page .status-badge.rejected {
+  background-color: var(--color-error);
+  color: white;
+}
+
+.moderation-page .importance-badge.urgente {
+  background-color: var(--color-error);
+  color: white;
+}
+
+.moderation-page .importance-badge.importante {
+  background-color: var(--color-warning);
+  color: white;
+}
+
+.moderation-page .importance-badge.normale {
+  background-color: var(--color-info);
+  color: white;
+}
+
+.moderation-page .scope-badge {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-primary);
+}
+
+/* Mode sombre spécifique */
+.dark-theme .moderation-page .author-avatar {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.dark-theme .moderation-page .article-card {
+  background-color: var(--color-bg-secondary);
+}
+
+.dark-theme .moderation-page .filters {
+  background-color: var(--color-bg-secondary);
+}
+
+.dark-theme .moderation-page .stat-card {
+  background-color: var(--color-bg-secondary);
+}

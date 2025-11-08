@@ -21,10 +21,6 @@ pids
 src
 public
 
-# Testing
-coverage
-.vitest
-
 # Editor directories and files
 .vscode
 .idea

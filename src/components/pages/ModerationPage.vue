@@ -111,10 +111,10 @@
         >
           <div class="article-header">
             <div class="article-meta">
-              <span class="importance-badge" :class="`importance-${article.importance}`">
-                {{ article.importance }}
+              <span class="importance-badge" :class="`importance-${article.importance || 'normal'}`">
+                {{ article.importance || 'Normal' }}
               </span>
-              <span class="status-badge" :class="`status-${article.status}`">
+              <span class="status-badge" :class="`status-${article.status || 'pending'}`">
                 {{ getStatusLabel(article.status) }}
               </span>
             </div>
@@ -142,12 +142,23 @@
                   <path d="M9 9L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
               </button>
+              
+              <button 
+                @click="openAdvancedModeration(article)"
+                class="action-btn advanced"
+                title="Modération avancée"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2"/>
+                </svg>
+              </button>
             </div>
           </div>
 
           <div class="article-content">
-            <h3 class="article-title">{{ article.title }}</h3>
-            <p class="article-excerpt">{{ truncateText(article.content, 120) }}</p>
+            <h3 class="article-title">{{ article.title || 'Sans titre' }}</h3>
+            <p class="article-excerpt">{{ truncateText(article.content || '', 120) }}</p>
             
             <div class="article-attachments" v-if="article.attachments && article.attachments.length > 0">
               <div class="attachment-count">
@@ -171,7 +182,7 @@
             </div>
             
             <div class="article-scope">
-              <span class="scope-badge">{{ article.scope }}</span>
+              <span class="scope-badge">{{ article.scope || 'Non défini' }}</span>
             </div>
           </div>
 
@@ -194,32 +205,94 @@
         </article>
       </div>
     </div>
+
+    <!-- Modale de modération avancée -->
+    <div v-if="showAdvancedModeration" class="modal-overlay" @click="closeAdvancedModeration">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2>Modération avancée</h2>
+          <button @click="closeAdvancedModeration" class="close-btn">
+            ✕
+          </button>
+        </div>
+        
+        <div class="modal-body">
+          <div v-if="selectedArticleForModeration" class="article-preview">
+            <h3>{{ selectedArticleForModeration.title }}</h3>
+            <p class="article-excerpt">{{ selectedArticleForModeration.excerpt }}</p>
+          </div>
+          
+          <AdvancedModeration
+            v-if="selectedArticleForModeration"
+            :article="selectedArticleForModeration"
+            :current-user="props.currentUser"
+            @status-updated="handleStatusUpdated"
+          />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { newsService } from '@/services/news.service.js'
+import AdvancedModeration from '@/components/AdvancedModeration.vue'
+import { useTheme } from '@/composables/useTheme.js'
+
+// Props
+const props = defineProps({
+  currentUser: {
+    type: Object,
+    required: true
+  }
+})
+
+// Initialiser le thème
+const { isDarkMode } = useTheme()
 
 // État réactif
 const allNews = ref([])
 const selectedFilter = ref('pending')
 const selectedImportance = ref('')
 const searchQuery = ref('')
+const error = ref(null)
+const isLoading = ref(false)
+
+// État pour la modération avancée
+const showAdvancedModeration = ref(false)
+const selectedArticleForModeration = ref(null)
 
 // Charger les données
-onMounted(() => {
-  loadNews()
+onMounted(async () => {
+  await loadNews()
 })
 
-const loadNews = () => {
-  // Récupérer les articles depuis localStorage
-  const savedNews = localStorage.getItem('ccc_news')
-  if (savedNews) {
-    allNews.value = JSON.parse(savedNews).map(article => ({
-      ...article,
-      showRejectForm: false,
-      rejectReason: ''
-    }))
+const loadNews = async () => {
+  try {
+    isLoading.value = true
+    error.value = null
+    
+    const response = await newsService.getNews({
+      page: 1,
+      limit: 100 // Charger tous les articles pour la modération
+    })
+    
+    if (response.success && response.data) {
+      allNews.value = response.data.results.map(article => ({
+        ...article,
+        showRejectForm: false,
+        rejectReason: ''
+      }))
+    } else {
+      throw new Error(response.message || 'Réponse API invalide')
+    }
+  } catch (err) {
+    console.error('Erreur lors du chargement des actualités:', err)
+    error.value = 'Impossible de se connecter à l\'API pour charger les actualités'
+    allNews.value = []
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -248,63 +321,111 @@ const filteredNews = computed(() => {
   }
 
   // Trier par date de création (plus récents en premier)
-  return filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+  return filtered.sort((a, b) => {
+    const dateA = a.created_at ? new Date(a.created_at) : new Date(0)
+    const dateB = b.created_at ? new Date(b.created_at) : new Date(0)
+    return dateB - dateA
+  })
+  // return  allNews.value.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
 })
 
 // Articles en attente
 const pendingNews = computed(() => {
   return allNews.value.filter(article => article.status === 'pending')
+
 })
 
 // Statistiques du jour
 const approvedToday = computed(() => {
   const today = new Date().toDateString()
-  return allNews.value.filter(article => 
-    article.status === 'approved' && 
-    new Date(article.moderated_at || article.created_at).toDateString() === today
-  ).length
+  return allNews.value.filter(article => {
+    const dateString = article.moderated_at || article.created_at
+    return article.status === 'approved' && 
+           dateString && 
+           new Date(dateString).toDateString() === today
+  }).length
 })
 
 const rejectedToday = computed(() => {
   const today = new Date().toDateString()
-  return allNews.value.filter(article => 
-    article.status === 'rejected' && 
-    new Date(article.moderated_at || article.created_at).toDateString() === today
-  ).length
+  return allNews.value.filter(article => {
+    const dateString = article.moderated_at || article.created_at
+    return article.status === 'rejected' && 
+           dateString && 
+           new Date(dateString).toDateString() === today
+  }).length
 })
 
 // Actions de modération
-const approveArticle = (article) => {
-  article.status = 'approved'
-  article.moderated_at = new Date().toISOString()
-  article.moderator_approval = true
-  article.moderator_id = props.currentUser?.id
-  article.effective_publication_date = new Date().toISOString()
-  
-  // Si l'article n'a pas été modifié, copier le contenu original
-  if (!article.moderated_title) {
-    article.moderated_title = article.original_title || article.title
+const approveArticle = async (article) => {
+  try {
+    isLoading.value = true
+    error.value = null
+    
+    // L'API utilise probablement un endpoint pour changer le statut
+    const response = await newsService.updateNewsStatus(article.id, {
+      status: 'approved', moderator_comment: "okok"
+    })
+    
+    if (response.success) {
+      // Mettre à jour localement
+      article.status = 'APPROVED'
+      article.moderated_at = new Date().toISOString()
+      article.moderator_approval = true
+      article.effective_publication_date = new Date().toISOString()
+      
+      alert('Article approuvé avec succès !')
+    } else {
+      throw new Error(response.message || 'Erreur lors de l\'approbation')
+    }
+  } catch (err) {
+    console.error('Erreur lors de l\'approbation:', err)
+    error.value = 'Impossible de se connecter à l\'API pour approuver l\'article'
+    alert('Erreur lors de l\'approbation de l\'article')
+  } finally {
+    isLoading.value = false
   }
-  if (!article.moderated_content) {
-    article.moderated_content = article.original_content || article.content
-  }
-  
-  saveNews()
 }
 
 const rejectArticle = (article) => {
   article.showRejectForm = true
 }
 
-const confirmReject = (article) => {
-  article.status = 'rejected'
-  article.moderated_at = new Date().toISOString()
-  article.moderator_approval = false
-  article.moderator_id = props.currentUser?.id
-  article.invalidation_reason = article.rejectReason
-  article.moderation_comments = article.rejectReason
-  article.showRejectForm = false
-  saveNews()
+const confirmReject = async (article) => {
+  if (!article.rejectReason.trim()) {
+    alert('Veuillez indiquer une raison pour le rejet')
+    return
+  }
+  
+  try {
+    isLoading.value = true
+    error.value = null
+    
+    const response = await newsService.updateNewsStatus(article.id, {
+      status: 'rejected',
+      reason: article.rejectReason
+    })
+    
+    if (response.success) {
+      // Mettre à jour localement
+      article.status = ''
+      article.moderated_at = new Date().toISOString()
+      article.moderator_approval = false
+      article.invalidation_reason = article.rejectReason
+      article.moderation_comments = article.rejectReason
+      article.showRejectForm = false
+      
+      alert('Article rejeté avec succès !')
+    } else {
+      throw new Error(response.message || 'Erreur lors du rejet')
+    }
+  } catch (err) {
+    console.error('Erreur lors du rejet:', err)
+    error.value = 'Impossible de se connecter à l\'API pour rejeter l\'article'
+    alert('Erreur lors du rejet de l\'article')
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const cancelReject = (article) => {
@@ -312,12 +433,29 @@ const cancelReject = (article) => {
   article.rejectReason = ''
 }
 
-const saveNews = () => {
-  const newsToSave = allNews.value.map(article => {
-    const { showRejectForm, rejectReason, ...cleanArticle } = article
-    return cleanArticle
-  })
-  localStorage.setItem('ccc_news', JSON.stringify(newsToSave))
+// Fonctions pour la modération avancée
+const openAdvancedModeration = (article) => {
+  selectedArticleForModeration.value = article
+  showAdvancedModeration.value = true
+}
+
+const closeAdvancedModeration = () => {
+  showAdvancedModeration.value = false
+  selectedArticleForModeration.value = null
+}
+
+const handleStatusUpdated = (updatedArticle) => {
+  // Mettre à jour l'article dans la liste
+  const index = allNews.value.findIndex(article => article.id === updatedArticle.id)
+  if (index !== -1) {
+    allNews.value[index] = { ...allNews.value[index], ...updatedArticle }
+  }
+  
+  // Fermer la modale
+  closeAdvancedModeration()
+  
+  // Recharger les données pour avoir les statistiques à jour
+  loadNews()
 }
 
 // Utilitaires
@@ -331,11 +469,13 @@ const getStatusLabel = (status) => {
 }
 
 const truncateText = (text, maxLength) => {
+  if (!text || typeof text !== 'string') return ''
   if (text.length <= maxLength) return text
   return text.substring(0, maxLength) + '...'
 }
 
 const formatDate = (dateString) => {
+  if (!dateString) return ''
   const date = new Date(dateString)
   return date.toLocaleDateString('fr-FR', {
     day: 'numeric',
@@ -350,8 +490,9 @@ const formatDate = (dateString) => {
 <style scoped>
 .moderation-page {
   padding: 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-color: var(--color-bg-primary);
   min-height: 100vh;
+  color: var(--color-text-primary);
 }
 
 .page-header {
@@ -361,12 +502,12 @@ const formatDate = (dateString) => {
 .header-content h1 {
   font-size: 2.5rem;
   font-weight: 700;
-  color: white;
+  color: var(--color-text-primary);
   margin: 0 0 0.5rem 0;
 }
 
 .subtitle {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--color-text-secondary);
   font-size: 1.1rem;
   margin: 0 0 2rem 0;
 }
@@ -379,15 +520,14 @@ const formatDate = (dateString) => {
 }
 
 .stat-card {
-  background: rgba(255, 255, 255, 0.95);
+  background-color: var(--color-card-bg);
   border-radius: 16px;
   padding: 1.5rem;
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: var(--color-card-shadow);
+  border: 1px solid var(--color-card-border);
 }
 
 .stat-icon {
@@ -401,33 +541,33 @@ const formatDate = (dateString) => {
 }
 
 .stat-icon.pending {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  background-color: var(--color-warning);
 }
 
 .stat-icon.approved {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background-color: var(--color-success);
 }
 
 .stat-icon.rejected {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  background-color: var(--color-error);
 }
 
 .stat-info h3 {
   font-size: 2rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--color-text-primary);
   margin: 0;
   line-height: 1;
 }
 
 .stat-info p {
-  color: #6b7280;
+  color: var(--color-text-secondary);
   margin: 0.25rem 0 0 0;
   font-weight: 500;
 }
 
 .filters {
-  background: rgba(255, 255, 255, 0.95);
+  background-color: var(--color-card-bg);
   border-radius: 16px;
   padding: 1.5rem;
   margin-bottom: 2rem;
@@ -435,9 +575,8 @@ const formatDate = (dateString) => {
   flex-wrap: wrap;
   gap: 1.5rem;
   align-items: center;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: var(--color-card-shadow);
+  border: 1px solid var(--color-card-border);
 }
 
 .filter-group {
@@ -807,6 +946,97 @@ const formatDate = (dateString) => {
   background: #e5e7eb;
 }
 
+/* Styles pour la modération avancée */
+.action-btn.advanced {
+  background: #8b5cf6;
+  color: white;
+}
+
+.action-btn.advanced:hover {
+  background: #7c3aed;
+}
+
+/* Modale */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background: #f3f4f6;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.article-preview {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border-left: 4px solid #3b82f6;
+}
+
+.article-preview h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.article-excerpt {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 @media (max-width: 768px) {
   .moderation-page {
     padding: 1rem;
@@ -832,6 +1062,22 @@ const formatDate = (dateString) => {
     flex-direction: column;
     gap: 1rem;
     align-items: flex-start;
+  }
+  
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+  
+  .modal-content {
+    max-height: 95vh;
+  }
+  
+  .modal-header {
+    padding: 1rem;
+  }
+  
+  .modal-body {
+    padding: 1rem;
   }
 }
 </style>

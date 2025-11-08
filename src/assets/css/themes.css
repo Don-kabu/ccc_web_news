@@ -1,0 +1,207 @@
+/* Variables CSS pour les thèmes */
+
+/* Thème clair (par défaut) */
+:root,
+.light-theme {
+  /* Couleurs principales */
+  --color-primary: #3b82f6;
+  --color-primary-dark: #2563eb;
+  --color-primary-light: #60a5fa;
+  
+  /* Couleurs de fond */
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f8fafc;
+  --color-bg-tertiary: #f1f5f9;
+  
+  /* Couleurs de texte */
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #64748b;
+  --color-text-muted: #94a3b8;
+  
+  /* Couleurs des bordures */
+  --color-border-primary: #e2e8f0;
+  --color-border-secondary: #cbd5e1;
+  
+  /* Couleurs des ombres */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  
+  /* Couleurs des états */
+  --color-success: #10b981;
+  --color-success-light: #d1fae5;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fef3c7;
+  --color-error: #ef4444;
+  --color-error-light: #fee2e2;
+  --color-info: #3b82f6;
+  --color-info-light: #dbeafe;
+  
+  /* Couleurs spécifiques aux cartes */
+  --color-card-bg: #ffffff;
+  --color-card-border: #e2e8f0;
+  --color-card-shadow: var(--shadow-md);
+  
+  /* Couleurs des boutons */
+  --color-btn-primary-bg: #3b82f6;
+  --color-btn-primary-text: #ffffff;
+  --color-btn-primary-hover: #2563eb;
+  --color-btn-secondary-bg: #f1f5f9;
+  --color-btn-secondary-text: #475569;
+  --color-btn-secondary-hover: #e2e8f0;
+  
+  /* Couleurs des inputs */
+  --color-input-bg: #ffffff;
+  --color-input-border: #d1d5db;
+  --color-input-focus: #3b82f6;
+  --color-input-text: #1f2937;
+  
+  /* Couleurs de navigation */
+  --color-nav-bg: #ffffff;
+  --color-nav-text: #374151;
+  --color-nav-active: #3b82f6;
+  --color-nav-hover: #f3f4f6;
+}
+
+/* Thème sombre */
+.dark-theme {
+  /* Couleurs principales */
+  --color-primary: #60a5fa;
+  --color-primary-dark: #3b82f6;
+  --color-primary-light: #93c5fd;
+  
+  /* Couleurs de fond */
+  --color-bg-primary: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-bg-tertiary: #334155;
+  
+  /* Couleurs de texte */
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #94a3b8;
+  
+  /* Couleurs des bordures */
+  --color-border-primary: #334155;
+  --color-border-secondary: #475569;
+  
+  /* Couleurs des ombres */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.15);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.15);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.25), 0 4px 6px -4px rgb(0 0 0 / 0.2);
+  
+  /* Couleurs des états */
+  --color-success: #34d399;
+  --color-success-light: #064e3b;
+  --color-warning: #fbbf24;
+  --color-warning-light: #451a03;
+  --color-error: #f87171;
+  --color-error-light: #450a0a;
+  --color-info: #60a5fa;
+  --color-info-light: #172554;
+  
+  /* Couleurs spécifiques aux cartes */
+  --color-card-bg: #1e293b;
+  --color-card-border: #334155;
+  --color-card-shadow: var(--shadow-lg);
+  
+  /* Couleurs des boutons */
+  --color-btn-primary-bg: #3b82f6;
+  --color-btn-primary-text: #ffffff;
+  --color-btn-primary-hover: #2563eb;
+  --color-btn-secondary-bg: #374151;
+  --color-btn-secondary-text: #d1d5db;
+  --color-btn-secondary-hover: #4b5563;
+  
+  /* Couleurs des inputs */
+  --color-input-bg: #374151;
+  --color-input-border: #4b5563;
+  --color-input-focus: #60a5fa;
+  --color-input-text: #f9fafb;
+  
+  /* Couleurs de navigation */
+  --color-nav-bg: #1e293b;
+  --color-nav-text: #cbd5e1;
+  --color-nav-active: #60a5fa;
+  --color-nav-hover: #334155;
+}
+
+/* Transitions fluides pour le changement de thème */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Classes utilitaires pour les thèmes */
+.bg-primary { background-color: var(--color-bg-primary); }
+.bg-secondary { background-color: var(--color-bg-secondary); }
+.bg-tertiary { background-color: var(--color-bg-tertiary); }
+
+.text-primary { color: var(--color-text-primary); }
+.text-secondary { color: var(--color-text-secondary); }
+.text-muted { color: var(--color-text-muted); }
+
+.border-primary { border-color: var(--color-border-primary); }
+.border-secondary { border-color: var(--color-border-secondary); }
+
+.shadow-sm { box-shadow: var(--shadow-sm); }
+.shadow-md { box-shadow: var(--shadow-md); }
+.shadow-lg { box-shadow: var(--shadow-lg); }
+
+/* Styles globaux pour les éléments communs */
+body {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+}
+
+.card {
+  background-color: var(--color-card-bg);
+  border: 1px solid var(--color-card-border);
+  box-shadow: var(--color-card-shadow);
+}
+
+.btn-primary {
+  background-color: var(--color-btn-primary-bg);
+  color: var(--color-btn-primary-text);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-btn-primary-hover);
+}
+
+.btn-secondary {
+  background-color: var(--color-btn-secondary-bg);
+  color: var(--color-btn-secondary-text);
+  border: 1px solid var(--color-border-primary);
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-btn-secondary-hover);
+}
+
+input, textarea, select {
+  background-color: var(--color-input-bg);
+  border: 1px solid var(--color-input-border);
+  color: var(--color-input-text);
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--color-input-focus);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* Navigation */
+nav {
+  background-color: var(--color-nav-bg);
+  color: var(--color-nav-text);
+}

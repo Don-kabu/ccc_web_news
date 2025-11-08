@@ -1,508 +1,553 @@
 <template>
-  <div>
-    <!-- Formulaire d'inscription -->
-    <div v-if="!showOtpPage">
-      <form @submit.prevent="handleRegister" class="auth-form register-form">
-        <!-- Section: Informations personnelles -->
-        <div class="form-section">
-          <h3 class="section-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2"/>
-              <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            Informations personnelles
-          </h3>
-          
-          <!-- Ligne 1: Prénom et Nom -->
-          <div class="form-row">
-            <div class="form-group">
-              <label for="first_name" class="form-label">Prénom *</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2"/>
-                  <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                <input
-                  id="first_name"
-                  v-model="registerForm.first_name"
-                  type="text"
-                  placeholder="Votre prénom"
-                  class="form-input"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label for="last_name" class="form-label">Nom *</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M20 21V19C20 17.9391 19.5786 16.9217 18.8284 16.1716C18.0783 15.4214 17.0609 15 16 15H8C6.93913 15 5.92172 15.4214 5.17157 16.1716C4.42143 16.9217 4 17.9391 4 19V21" stroke="currentColor" stroke-width="2"/>
-                  <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                <input
-                  id="last_name"
-                  v-model="registerForm.last_name"
-                  type="text"
-                  placeholder="Votre nom"
-                  class="form-input"
-                  required
-                />
-              </div>
-            </div>
-          </div>
+  <div class="register-container">
+    <!-- Étape 1: Vérification email avec OTP -->
+    <EmailVerification
+      v-if="currentStep === 1"
+      @verification-success="handleEmailVerified"
+      @back="handleBackToLogin"
+      :verification-type="'university-creation'"
+      class="email-verification-step"
+    />
 
-          <!-- Ligne 2: Username et Email -->
-          <div class="form-row">
-            <div class="form-group">
-              <label for="username" class="form-label">Nom d'utilisateur *</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                <input
-                  id="username"
-                  v-model="registerForm.username"
-                  type="text"
-                  placeholder="admin_universite"
-                  class="form-input"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label for="register-email" class="form-label">Email *</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 4H20C21.1 4 22 4.9 22 6V18C22 19.1 21.1 20 20 20H4C2.9 20 2 19.1 2 18V6C2 4.9 2.9 4 4 4Z" stroke="currentColor" stroke-width="2"/>
-                  <polyline points="22,6 12,13 2,6" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                <input
-                  id="register-email"
-                  v-model="registerForm.email"
-                  type="email"
-                  placeholder="admin@nouvelleuni.edu"
-                  class="form-input"
-                  required
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Mots de passe -->
-          <div class="form-row">
-            <div class="form-group">
-              <label for="register-password" class="form-label">Mot de passe *</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
-                  <circle cx="12" cy="16" r="1" fill="currentColor"/>
-                  <path d="M7 11V7A5 5 0 0 1 17 7V11" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                <input
-                  id="register-password"
-                  v-model="registerForm.password"
-                  :type="showPassword ? 'text' : 'password'"
-                  placeholder="••••••••"
-                  class="form-input"
-                  required
-                />
-                <button
-                  type="button"
-                  @click="togglePasswordVisibility"
-                  class="password-toggle"
-                >
-                  <svg v-if="showPassword" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C7 20 2.73 16.39 1 12A18.45 18.45 0 0 1 5.06 5.06L17.94 17.94Z" stroke="currentColor" stroke-width="2"/>
-                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4C17 4 21.27 7.61 23 12A18.5 18.5 0 0 1 19.42 16.42" stroke="currentColor" stroke-width="2"/>
-                    <path d="M1 1L23 23" stroke="currentColor" stroke-width="2"/>
-                  </svg>
-                  <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2"/>
-                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-                  </svg>
-                </button>
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label for="password_confirm" class="form-label">Confirmer *</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="currentColor" stroke-width="2"/>
-                  <circle cx="12" cy="16" r="1" fill="currentColor"/>
-                  <path d="M7 11V7A5 5 0 0 1 17 7V11" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                <input
-                  id="password_confirm"
-                  v-model="registerForm.password_confirm"
-                  :type="showPasswordConfirm ? 'text' : 'password'"
-                  placeholder="••••••••"
-                  class="form-input"
-                  :class="{ 'error': registerForm.password_confirm && !isPasswordMatch }"
-                  required
-                />
-                <button
-                  type="button"
-                  @click="togglePasswordConfirmVisibility"
-                  class="password-toggle"
-                >
-                  <svg v-if="showPasswordConfirm" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20C7 20 2.73 16.39 1 12A18.45 18.45 0 0 1 5.06 5.06L17.94 17.94Z" stroke="currentColor" stroke-width="2"/>
-                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4C17 4 21.27 7.61 23 12A18.5 18.5 0 0 1 19.42 16.42" stroke="currentColor" stroke-width="2"/>
-                    <path d="M1 1L23 23" stroke="currentColor" stroke-width="2"/>
-                  </svg>
-                  <svg v-else width="20" height="20" viewBox="0 0 24 24" fill="none">
-                    <path d="M1 12S5 4 12 4S23 12 23 12S19 20 12 20S1 12 1 12Z" stroke="currentColor" stroke-width="2"/>
-                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
-                  </svg>
-                </button>
-              </div>
-              <div v-if="registerForm.password_confirm && !isPasswordMatch" class="error-message">
-                Les mots de passe ne correspondent pas
-              </div>
-            </div>
-          </div>
+    <!-- Étape 2: Formulaire complet après vérification email -->
+    <div v-else-if="currentStep === 2" class="register-form-container">
+      <div class="form-header">
+        <h2>Créer votre institution universitaire</h2>
+        <p>Complétez les informations pour finaliser la création de votre compte et de votre institution</p>
+        <div class="verified-email-badge">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2"/>
+          </svg>
+          Email vérifié : {{ verifiedEmail }}
         </div>
+      </div>
 
-        <!-- Section: Informations de l'université -->
-        <div class="form-section">
-          <h3 class="section-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M12 2L3 7L12 12L21 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M3 17L12 22L21 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-              <path d="M3 12L12 17L21 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            </svg>
-            Nouvelle université
-          </h3>
+      <form @submit.prevent="handleRegister" class="register-form">
+        <!-- Section Informations de l'institution -->
+        <fieldset class="form-section">
+          <legend>Informations de l'institution</legend>
           
           <div class="form-group">
-            <label for="university_name" class="form-label">Nom de l'université *</label>
-            <div class="input-wrapper">
-              <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L3 7L12 12L21 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                <path d="M3 17L12 22L21 17" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-                <path d="M3 12L12 17L21 12" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-              </svg>
-              <input
-                id="university_name"
-                v-model="registerForm.university_name"
-                type="text"
-                placeholder="Université de Kinshasa"
-                class="form-input"
-                required
-              />
+            <label for="university_name" class="form-label">Nom de l'institution *</label>
+            <input
+              id="university_name"
+              v-model="registerForm.university_name"
+              type="text"
+              placeholder="Université de Kinshasa"
+              class="form-input"
+              :class="{ 'error': validationErrors.university_name }"
+              required
+            />
+            <div v-if="validationErrors.university_name" class="field-error">
+              {{ validationErrors.university_name }}
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label for="university_city" class="form-label">Ville</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M21 10C21 17 12 23 12 23S3 17 3 10C3 5.03 7.03 1 12 1S21 5.03 21 10Z" stroke="currentColor" stroke-width="2"/>
-                  <circle cx="12" cy="10" r="3" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                <input
-                  id="university_city"
-                  v-model="registerForm.university_city"
-                  type="text"
-                  placeholder="Kinshasa"
-                  class="form-input"
-                />
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label for="university_country" class="form-label">Pays</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                <select
-                  id="university_country"
-                  v-model="registerForm.university_country"
-                  class="form-input"
-                  style="padding-left: 3rem;"
-                >
-                  <option value="République Démocratique du Congo">République Démocratique du Congo</option>
-                  <option value="Rwanda">Rwanda</option>
-                  <option value="Burundi">Burundi</option>
-                  <option value="Congo-Brazzaville">Congo-Brazzaville</option>
-                  <option value="Cameroun">Cameroun</option>
-                </select>
-              </div>
+          <div class="form-group">
+            <label for="university_type" class="form-label">Type d'institution *</label>
+            <select
+              id="university_type"
+              v-model="registerForm.university_type"
+              class="form-input"
+              :class="{ 'error': validationErrors.university_type }"
+              required
+            >
+              <option value="">Sélectionner le type</option>
+              <option value="PUBLIC">Université publique</option>
+              <option value="PRIVATE">Université privée</option>
+              <option value="INSTITUTE">Institut supérieur</option>
+              <option value="COLLEGE">École supérieure</option>
+            </select>
+            <div v-if="validationErrors.university_type" class="field-error">
+              {{ validationErrors.university_type }}
             </div>
           </div>
-        </div>
 
-        <!-- Section: Structure académique -->
-        <div class="form-section">
-          <h3 class="section-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7" stroke="currentColor" stroke-width="2"/>
-              <path d="M21 7L12 12L3 7L12 2L21 7Z" stroke="currentColor" stroke-width="2"/>
-            </svg>
-            Structure académique
-          </h3>
+          <div class="form-group">
+            <label for="university_city" class="form-label">Ville *</label>
+            <input
+              id="university_city"
+              v-model="registerForm.university_city"
+              type="text"
+              placeholder="Kinshasa"
+              class="form-input"
+              :class="{ 'error': validationErrors.university_city }"
+              required
+            />
+            <div v-if="validationErrors.university_city" class="field-error">
+              {{ validationErrors.university_city }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="university_country" class="form-label">Pays *</label>
+            <input
+              id="university_country"
+              v-model="registerForm.university_country"
+              type="text"
+              placeholder="République Démocratique du Congo"
+              class="form-input"
+              :class="{ 'error': validationErrors.university_country }"
+              required
+            />
+            <div v-if="validationErrors.university_country" class="field-error">
+              {{ validationErrors.university_country }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="university_website" class="form-label">Site web de l'institution</label>
+            <input
+              id="university_website"
+              v-model="registerForm.university_website"
+              type="url"
+              placeholder="https://www.universite-kinshasa.cd"
+              class="form-input"
+              :class="{ 'error': validationErrors.university_website }"
+            />
+            <div v-if="validationErrors.university_website" class="field-error">
+              {{ validationErrors.university_website }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="university_description" class="form-label">Description de l'institution</label>
+            <textarea
+              id="university_description"
+              v-model="registerForm.university_description"
+              placeholder="Brève description de votre institution..."
+              class="form-textarea"
+              :class="{ 'error': validationErrors.university_description }"
+              rows="3"
+            ></textarea>
+            <div v-if="validationErrors.university_description" class="field-error">
+              {{ validationErrors.university_description }}
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Section Informations de l'administrateur -->
+        <fieldset class="form-section">
+          <legend>Compte administrateur</legend>
           
           <div class="form-row">
             <div class="form-group">
-              <label for="faculty_name" class="form-label">Faculté *</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7" stroke="currentColor" stroke-width="2"/>
-                  <path d="M21 7L12 12L3 7L12 2L21 7Z" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                <input
-                  id="faculty_name"
-                  v-model="registerForm.faculty_name"
-                  type="text"
-                  placeholder="Faculté des Sciences"
-                  class="form-input"
-                  required
-                />
+              <label for="admin_first_name" class="form-label">Prénom de l'administrateur *</label>
+              <input
+                id="admin_first_name"
+                v-model="registerForm.admin_first_name"
+                type="text"
+                placeholder="Jean"
+                class="form-input"
+                :class="{ 'error': validationErrors.admin_first_name }"
+                required
+              />
+              <div v-if="validationErrors.admin_first_name" class="field-error">
+                {{ validationErrors.admin_first_name }}
               </div>
             </div>
-            
+
             <div class="form-group">
-              <label for="department_name" class="form-label">Département *</label>
-              <div class="input-wrapper">
-                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <path d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V7" stroke="currentColor" stroke-width="2"/>
-                  <path d="M21 7L12 12L3 7L12 2L21 7Z" stroke="currentColor" stroke-width="2"/>
-                </svg>
-                <input
-                  id="department_name"
-                  v-model="registerForm.department_name"
-                  type="text"
-                  placeholder="Informatique"
-                  class="form-input"
-                  required
-                />
+              <label for="admin_last_name" class="form-label">Nom de famille *</label>
+              <input
+                id="admin_last_name"
+                v-model="registerForm.admin_last_name"
+                type="text"
+                placeholder="Kabila"
+                class="form-input"
+                :class="{ 'error': validationErrors.admin_last_name }"
+                required
+              />
+              <div v-if="validationErrors.admin_last_name" class="field-error">
+                {{ validationErrors.admin_last_name }}
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Conditions d'utilisation -->
-        <div class="form-group">
-          <div class="checkbox-wrapper">
+          <div class="form-group">
+            <label for="admin_email" class="form-label">Email (déjà vérifié)</label>
             <input
-              id="terms"
-              v-model="registerForm.terms_accepted"
-              type="checkbox"
-              class="checkbox"
+              id="admin_email"
+              :value="verifiedEmail"
+              type="email"
+              class="form-input verified-field"
+              readonly
+              disabled
+            />
+            <small class="help-text">Cet email a été vérifié lors de l'étape précédente</small>
+          </div>
+
+          <div class="form-group">
+            <label for="admin_password" class="form-label">Mot de passe *</label>
+            <PasswordValidator
+              ref="passwordValidationRef"
+              v-model="registerForm.admin_password"
+              :userData="userDataForPasswordValidation"
+              :inputId="'admin_password'"
+              :placeholder="'Créez un mot de passe sécurisé'"
+              :showStrengthIndicator="true"
+              :showValidationCriteria="true"
+              :validateOnType="true"
+              @validation-change="handlePasswordValidationChange"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="admin_phone" class="form-label">Numéro de téléphone *</label>
+            <input
+              id="admin_phone"
+              v-model="registerForm.admin_phone"
+              type="tel"
+              placeholder="+243892649177"
+              class="form-input"
+              :class="{ 'error': validationErrors.admin_phone }"
               required
             />
-            <label for="terms" class="checkbox-label">
-              J'accepte les <a href="#" class="link">conditions d'utilisation</a> et je confirme que je suis autorisé(e) à créer cette institution universitaire
-            </label>
+            <div v-if="validationErrors.admin_phone" class="field-error">
+              {{ validationErrors.admin_phone }}
+            </div>
           </div>
-        </div>
+        </fieldset>
 
-        <!-- Message d'erreur -->
+        <!-- Message d'erreur global -->
         <div v-if="errorMessage" class="error-message">
           {{ errorMessage }}
         </div>
 
-        <!-- Bouton d'inscription -->
-        <button
-          type="submit"
-          class="auth-button"
-          :disabled="isLoading || !isFormValid"
-        >
-          <span v-if="!isLoading">Créer l'Institution</span>
-          <div v-else class="loading-spinner">
-            <svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.25"/>
-              <path d="M4 12A8 8 0 0 1 12 4" stroke="currentColor" stroke-width="4"/>
-            </svg>
-            <span>Création en cours...</span>
-          </div>
-        </button>
+        <!-- Actions du formulaire -->
+        <div class="form-actions">
+          <button
+            type="button"
+            @click="goBackToEmailVerification"
+            class="secondary-button"
+          >
+            ← Modifier l'email
+          </button>
+          
+          <button
+            type="submit"
+            class="primary-button"
+            :disabled="isLoading || !isPasswordValid"
+          >
+            <span v-if="!isLoading">Créer l'institution</span>
+            <div v-else class="loading-spinner">
+              <svg class="animate-spin" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.25"/>
+                <path d="M4 12A8 8 0 0 1 12 4" stroke="currentColor" stroke-width="4"/>
+              </svg>
+              <span>Création...</span>
+            </div>
+          </button>
+        </div>
       </form>
     </div>
 
-    <!-- Page de confirmation OTP -->
-    <OtpVerification 
-      v-if="showOtpPage"
-      :email="registerForm.email"
-      :user-data="pendingUserData"
-      @verification-success="handleOtpSuccess"
-      @back-to-register="showOtpPage = false"
-    />
+    <!-- Étape 3: Succès -->
+    <div v-else-if="currentStep === 3" class="success-container">
+      <div class="success-content">
+        <div class="success-icon">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
+            <path d="M9 12L11 14L15 10M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z" stroke="currentColor" stroke-width="2"/>
+          </svg>
+        </div>
+        <h2>Institution créée avec succès !</h2>
+        <p>Votre institution <strong>{{ createdInstitution?.name }}</strong> a été créée et votre compte administrateur est activé.</p>
+        <div class="success-details">
+          <div class="detail-item">
+            <strong>Institution :</strong> {{ createdInstitution?.name }}
+          </div>
+          <div class="detail-item">
+            <strong>Administrateur :</strong> {{ createdAdmin?.first_name }} {{ createdAdmin?.last_name }}
+          </div>
+          <div class="detail-item">
+            <strong>Email :</strong> {{ createdAdmin?.email }}
+          </div>
+        </div>
+        <button 
+          @click="proceedToLogin"
+          class="primary-button"
+        >
+          Accéder à votre institution
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
-import OtpVerification from './OtpVerification.vue'
+import { ref, reactive, computed, watch } from 'vue'
+import EmailVerification from '../common/EmailVerification.vue'
+import PasswordValidator from '../common/PasswordValidator.vue'
+import { authService } from '@/services/auth.service.js'
 
-const emit = defineEmits(['register-success', 'switch-to-login'])
+// Props et émissions
+const emit = defineEmits(['registration-success', 'switch-to-login'])
 
 // État réactif
-const registerForm = reactive({
-  first_name: '',
-  last_name: '',
-  username: '',
-  email: '',
-  password: '',
-  password_confirm: '',
-  university_name: '',
-  university_city: '',
-  university_country: 'République Démocratique du Congo',
-  faculty_name: '',
-  department_name: '',
-  terms_accepted: false
-})
-
-const showPassword = ref(false)
-const showPasswordConfirm = ref(false)
+const currentStep = ref(1)
+const verifiedEmail = ref('')
 const isLoading = ref(false)
 const errorMessage = ref('')
-const showOtpPage = ref(false)
-const pendingUserData = ref(null)
+const validationErrors = ref({})
+const passwordValidationRef = ref(null)
+const passwordValidationResult = ref({ isValid: false, errors: [], strength: 0 })
 
-// Computed
-const isPasswordMatch = computed(() => {
-  return registerForm.password === registerForm.password_confirm
+// Données de succès
+const createdInstitution = ref(null)
+const createdAdmin = ref(null)
+
+// Formulaire principal
+const registerForm = reactive({
+  // Données université
+  university_name: '',
+  university_type: '',
+  university_city: '',
+  university_country: '',
+  university_website: '',
+  university_description: '',
+  
+  // Données administrateur  
+  admin_first_name: '',
+  admin_last_name: '',
+  admin_email: '', // sera rempli automatiquement avec verifiedEmail
+  admin_password: '',
+  admin_phone: ''
 })
 
-const isFormValid = computed(() => {
-  return registerForm.first_name &&
-         registerForm.last_name &&
-         registerForm.username &&
-         registerForm.email &&
-         registerForm.password &&
-         registerForm.password_confirm &&
-         isPasswordMatch.value &&
-         registerForm.university_name &&
-         registerForm.faculty_name &&
-         registerForm.department_name &&
-         registerForm.terms_accepted
+// Computed
+const isPasswordValid = computed(() => passwordValidationResult.value.isValid)
+
+const userDataForPasswordValidation = computed(() => ({
+  first_name: registerForm.admin_first_name,
+  last_name: registerForm.admin_last_name,
+  email: verifiedEmail.value
+}))
+
+// Watchers
+watch(verifiedEmail, (newEmail) => {
+  registerForm.admin_email = newEmail
 })
 
 // Méthodes
-const togglePasswordVisibility = () => {
-  showPassword.value = !showPassword.value
+const handlePasswordValidationChange = (validation) => {
+  passwordValidationResult.value = validation
+  // Supprimer les erreurs de mot de passe des erreurs de validation générales
+  if (validation.isValid) {
+    delete validationErrors.value.admin_password
+  }
 }
 
-const togglePasswordConfirmVisibility = () => {
-  showPasswordConfirm.value = !showPasswordConfirm.value
+const handleEmailVerified = (emailData) => {
+  console.log('✅ Email vérifié pour création d\'université:', emailData)
+  verifiedEmail.value = emailData.email || emailData
+  registerForm.admin_email = verifiedEmail.value
+  currentStep.value = 2
+}
+
+const handleBackToLogin = () => {
+  emit('switch-to-login')
+}
+
+const goBackToEmailVerification = () => {
+  currentStep.value = 1
+  verifiedEmail.value = ''
+  registerForm.admin_email = ''
 }
 
 const handleRegister = async () => {
-  if (!isFormValid.value) {
-    errorMessage.value = 'Veuillez remplir tous les champs obligatoires'
-    return
-  }
-
-  if (!isPasswordMatch.value) {
-    errorMessage.value = 'Les mots de passe ne correspondent pas'
+  if (!isPasswordValid.value) {
+    errorMessage.value = 'Le mot de passe ne respecte pas les critères de sécurité'
     return
   }
 
   isLoading.value = true
   errorMessage.value = ''
+  validationErrors.value = {}
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 2000))
-
-    // Créer l'université
-    const university = {
-      id: Date.now(),
-      name: registerForm.university_name,
-      city: registerForm.university_city,
-      country: registerForm.university_country,
-      faculties: [
-        {
-          id: Date.now() + 1,
-          name: registerForm.faculty_name,
-          departments: [
-            {
-              id: Date.now() + 2,
-              name: registerForm.department_name
-            }
-          ]
-        }
-      ],
-      created_at: new Date().toISOString()
+    // Préparer les données au format attendu par le backend
+    const registrationData = {
+      email: verifiedEmail.value,
+      otp_code: "verified", // Indique que l'email a été vérifié
+      
+      // Données université
+      university_name: registerForm.university_name,
+      university_type: registerForm.university_type,
+      university_city: registerForm.university_city,
+      university_country: registerForm.university_country,
+      university_website: registerForm.university_website || '',
+      university_description: registerForm.university_description || '',
+      
+      // Données admin
+      admin_first_name: registerForm.admin_first_name,
+      admin_last_name: registerForm.admin_last_name,
+      admin_email: verifiedEmail.value,
+      admin_password: registerForm.admin_password,
+      admin_phone: registerForm.admin_phone
     }
 
-    // Créer l'utilisateur
-    const user = {
-      id: Date.now(),
-      first_name: registerForm.first_name,
-      last_name: registerForm.last_name,
-      username: registerForm.username,
-      email: registerForm.email,
-      password: registerForm.password,
-      role: 'ADMIN', // Le créateur d'institution devient automatiquement administrateur
-      university_id: university.id,
-      university: university,
-      faculty: registerForm.faculty_name,
-      department: registerForm.department_name,
-      is_verified: false,
-      otp_code: Math.floor(100000 + Math.random() * 900000).toString(),
-      created_at: new Date().toISOString(),
-      last_login: null
+    console.log('📤 Envoi des données d\'inscription:', {
+      ...registrationData,
+      admin_password: '[MASQUÉ]'
+    })
+
+    // Utiliser le service d'authentification
+    const response = await authService.registerUniversity(registrationData)
+
+    if (response.status === 'success') {
+      console.log('✅ Université créée avec succès:', response.data)
+      
+      // Sauvegarder les informations de succès
+      createdInstitution.value = response.data.university
+      createdAdmin.value = response.data.admin || response.data.user
+      
+      // Passer à l'étape de succès
+      currentStep.value = 3
+      
+      console.log('🎉 Redirection vers l\'étape de succès')
+    } else {
+      throw new Error(response.message || 'Erreur lors de la création de l\'université')
     }
-
-    // Sauvegarder temporairement les données
-    pendingUserData.value = { user, university }
-
-    // Simuler l'envoi d'OTP par email
-    console.log(`OTP envoyé à ${user.email}: ${user.otp_code}`)
-
-    // Afficher la page de vérification OTP
-    showOtpPage.value = true
-
   } catch (error) {
-    errorMessage.value = 'Erreur lors de la création de l\'institution. Veuillez réessayer.'
-    console.error('Erreur d\'inscription:', error)
+    console.error('❌ Erreur lors de l\'inscription:', error)
+    
+    // Gestion détaillée des erreurs
+    if (error.response && error.response.error) {
+      const apiError = error.response.error
+      
+      // Erreurs de validation avec détails par champ
+      if (apiError.code === 'VALIDATION_ERROR' && apiError.details) {
+        validationErrors.value = apiError.details
+        errorMessage.value = apiError.message || 'Veuillez corriger les erreurs ci-dessous'
+        
+        console.log('🔍 Erreurs de validation détaillées:', validationErrors.value)
+      } else {
+        // Autres erreurs de l'API
+        errorMessage.value = apiError.message || 'Erreur lors de la création de l\'université'
+      }
+    } else if (error.status === 400 || error.status === 422) {
+      // Erreurs de validation HTTP directes
+      try {
+        const errorData = error.response || error
+        if (errorData.details || errorData.errors) {
+          validationErrors.value = errorData.details || errorData.errors
+          errorMessage.value = errorData.message || 'Données invalides'
+        } else {
+          errorMessage.value = 'Données invalides. Vérifiez vos informations.'
+        }
+      } catch (parseError) {
+        errorMessage.value = 'Erreur de validation'
+      }
+    } else if (error.status === 409) {
+      errorMessage.value = 'Cette université ou cet email existe déjà.'
+    } else {
+      // Erreur générique
+      errorMessage.value = error.message || 'Erreur lors de la création de l\'université'
+    }
+    
+    // Scroller vers le haut pour voir l'erreur
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
   } finally {
     isLoading.value = false
   }
 }
 
-const handleOtpSuccess = (verifiedData) => {
-  // Émettre les données vérifiées au lieu des données temporaires
-  emit('register-success', verifiedData || pendingUserData.value)
-  showOtpPage.value = false
+const proceedToLogin = () => {
+  console.log('🎯 Émission de l\'événement registration-success...')
+  console.log('📊 Données à envoyer:', {
+    user: createdAdmin.value,
+    university: createdInstitution.value
+  })
+  
+  // Émettre l'événement de succès avec toutes les données
+  emit('registration-success', {
+    user: createdAdmin.value,
+    university: createdInstitution.value,
+    message: 'Institution créée et compte administrateur activé avec succès !'
+  })
+  
+  console.log('✅ Événement registration-success émis')
 }
 </script>
 
 <style scoped>
-.auth-form {
+.register-container {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.email-verification-step {
+  margin: 0 auto;
+}
+
+.register-form-container {
+  background: var(--background-secondary);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.form-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.form-header h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.form-header p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.verified-email-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.register-form {
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
 
 .form-section {
-  background: rgba(255, 255, 255, 0.7);
-  padding: 1.5rem;
+  border: 2px solid var(--border-light);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 1.5rem;
+  background: var(--background-primary);
 }
 
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 1.125rem;
+.form-section legend {
   font-weight: 700;
   color: var(--text-primary);
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 2px solid rgba(99, 102, 241, 0.2);
+  font-size: 1.125rem;
+  padding: 0 1rem;
+  background: var(--background-primary);
 }
 
-.section-title svg {
-  color: #6366f1;
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
 }
 
 .form-row {
@@ -511,130 +556,48 @@ const handleOtpSuccess = (verifiedData) => {
   gap: 1rem;
 }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
 .form-label {
   font-weight: 600;
   color: var(--text-primary);
   font-size: 0.875rem;
 }
 
-.input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.input-icon {
-  position: absolute;
-  left: 1rem;
-  color: var(--text-muted);
-  z-index: 1;
-}
-
-.form-input {
+.form-input, .form-textarea {
   width: 100%;
-  padding: 1rem 1rem 1rem 3rem;
+  padding: 1rem;
   border: 2px solid var(--border-color);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   font-size: 1rem;
   background: var(--background-secondary);
   color: var(--text-primary);
   transition: all 0.2s ease;
 }
 
-.form-input:focus {
+.form-input:focus, .form-textarea:focus {
   outline: none;
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
-.form-input.error {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
-}
-
-.form-input::placeholder {
+.form-input::placeholder, .form-textarea::placeholder {
   color: var(--text-muted);
 }
 
-.password-toggle {
-  position: absolute;
-  right: 1rem;
-  background: none;
-  border: none;
+.verified-field {
+  background: rgba(16, 185, 129, 0.1) !important;
+  border-color: #10b981 !important;
+  color: var(--text-primary) !important;
+}
+
+.help-text {
+  font-size: 0.75rem;
   color: var(--text-muted);
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: var(--radius-sm);
-  transition: color 0.2s ease;
+  margin-top: 0.25rem;
 }
 
-.password-toggle:hover {
-  color: var(--text-primary);
-}
-
-.checkbox-wrapper {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-}
-
-.checkbox {
-  width: 1.25rem;
-  height: 1.25rem;
-  accent-color: #6366f1;
-  margin-top: 0.125rem;
-}
-
-.checkbox-label {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-
-.link {
-  color: #6366f1;
-  text-decoration: underline;
-  font-weight: 600;
-}
-
-.link:hover {
-  color: #4f46e5;
-}
-
-.auth-button {
-  width: 100%;
-  padding: 1.25rem 1.5rem;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
-  color: white;
-  border: none;
-  border-radius: var(--radius-lg);
-  font-size: 1.1rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: 4rem;
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
-}
-
-.auth-button:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 30px rgba(99, 102, 241, 0.4);
-}
-
-.auth-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
 }
 
 .error-message {
@@ -644,16 +607,209 @@ const handleOtpSuccess = (verifiedData) => {
   border-radius: var(--radius-md);
   font-size: 0.875rem;
   border: 1px solid rgba(239, 68, 68, 0.2);
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
 }
 
+.field-error {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  padding-left: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.field-error::before {
+  content: "⚠";
+  font-size: 0.875rem;
+}
+
+.form-input.error, .form-textarea.error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin-top: 2rem;
+}
+
+.primary-button, .secondary-button {
+  padding: 1rem 2rem;
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  border: none;
+  font-size: 1rem;
+}
+
+.primary-button {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+  color: white;
+  flex: 1;
+  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+}
+
+.primary-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+}
+
+.primary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.secondary-button {
+  background: var(--background-primary);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
+}
+
+.secondary-button:hover {
+  background: var(--border-light);
+  border-color: var(--border-hover);
+}
+
+.loading-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Page de succès */
+.success-container {
+  background: var(--background-secondary);
+  border-radius: var(--radius-xl);
+  padding: 3rem;
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.success-content {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.success-icon {
+  color: #10b981;
+  margin-bottom: 1.5rem;
+}
+
+.success-content h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.success-content p {
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.success-details {
+  background: var(--background-primary);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  text-align: left;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-secondary);
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-item strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
+  .register-container {
+    padding: 1rem;
+  }
+
+  .register-form-container {
+    padding: 1.5rem;
+  }
+
+  .form-header h2 {
+    font-size: 1.5rem;
+  }
+
   .form-row {
     grid-template-columns: 1fr;
   }
-  
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .success-container {
+    padding: 2rem;
+  }
+
+  .success-content h2 {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .register-container {
+    padding: 0.5rem;
+  }
+
+  .register-form-container {
+    padding: 1rem;
+  }
+
   .form-section {
     padding: 1rem;
+  }
+
+  .form-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .verified-email-badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+  }
+
+  .success-container {
+    padding: 1.5rem;
   }
 }
 </style>

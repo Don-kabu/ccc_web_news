@@ -2,7 +2,13 @@
   <div class="news-page">
     <div class="page-header">
       <h1>Actualités</h1>
-      <button @click="$emit('tab-change', 'publier')" class="primary">Nouvelle actualité</button>
+      <button 
+        v-if="hasPermission(PERMISSIONS.CREATE_NEWS)" 
+        @click="$emit('tab-change', 'publier')" 
+        class="primary"
+      >
+        Nouvelle actualité
+      </button>
     </div>
 
     <div class="organization-tabs">
@@ -41,7 +47,13 @@
       <div v-if="filteredArticles.length === 0" class="empty">
         <h3>{{ getEmptyStateTitle() }}</h3>
         <p>{{ getEmptyStateMessage() }}</p>
-        <button @click="$emit('tab-change','publier')" class="primary">Publier</button>
+        <button 
+          v-if="hasPermission(PERMISSIONS.CREATE_NEWS)"
+          @click="$emit('tab-change','publier')" 
+          class="primary"
+        >
+          Publier
+        </button>
       </div>
 
       <div v-else class="articles-grid">
@@ -55,8 +67,8 @@
             <time>{{ formatDate(article.created_at) }}</time>
           </div>
 
-          <h2 class="title">{{ article.title }}</h2>
-          <p class="excerpt">{{ article.content.substring(0,200) }}...</p>
+          <h2 class="title">{{ article.title || 'Sans titre' }}</h2>
+          <p class="excerpt">{{ (article.content || '').substring(0,200) }}...</p>
 
           <!-- Pièces jointes -->
           <div v-if="article.attachments?.length" class="attachments-preview">
@@ -75,19 +87,19 @@
               >
                 <!-- Image thumbnail -->
                 <img 
-                  v-if="attachment.type.startsWith('image/') && attachment.preview" 
+                  v-if="attachment.type?.startsWith('image/') && attachment.preview" 
                   :src="attachment.preview" 
-                  :alt="attachment.name"
+                  :alt="attachment.name || 'Image'"
                   class="thumb-image"
                 />
                 <!-- Video icon -->
-                <div v-else-if="attachment.type.startsWith('video/')" class="thumb-icon video">
+                <div v-else-if="attachment.type?.startsWith('video/')" class="thumb-icon video">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>
                   </svg>
                 </div>
                 <!-- Audio icon -->
-                <div v-else-if="attachment.type.startsWith('audio/')" class="thumb-icon audio">
+                <div v-else-if="attachment.type?.startsWith('audio/')" class="thumb-icon audio">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M9 18V5L21 3V20" stroke="currentColor" stroke-width="2"/>
                     <circle cx="6" cy="18" r="3" stroke="currentColor" stroke-width="2"/>
@@ -128,9 +140,14 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { newsService } from '@/services/news.service.js'
+import { usePermissions, PERMISSIONS } from '@/composables/usePermissions.js'
 
 const props = defineProps({ currentUser: { type: Object, required: true } })
 const emit = defineEmits(['tab-change'])
+
+// Système de permissions
+const { hasPermission } = usePermissions(props.currentUser)
 
 const organizationTabs = [
   { key: 'university', label: 'Université' },
@@ -142,6 +159,7 @@ const organizationTabs = [
 const activeOrgTab = ref('university')
 const news = ref([])
 const loading = ref(true)
+const error = ref(null)
 const searchQuery = ref('')
 const selectedCategory = ref('')
 const sortBy = ref('date-desc')
@@ -153,20 +171,103 @@ onMounted(() => {
   window.addEventListener('news-published', loadNews)
 })
 
-const loadNews = () => {
-  const saved = JSON.parse(localStorage.getItem('ccc_news') || '[]')
-  // Filtrer les articles selon le rôle de l'utilisateur
-  news.value = saved
-    .filter(article => {
-      // Admins et modérateurs voient tous les articles
-      if (['ADMIN', 'MODERATOR'].includes(props.currentUser.role)) {
-        return true
-      }
-      // Les autres voient les articles approuvés + leurs propres articles
-      return article.status === 'approved' || article.author.id === props.currentUser.id
+const loadNews = async () => {
+  try {
+    loading.value = true
+    error.value = null
+    
+    console.log('🔄 Chargement des actualités depuis l\'API...')
+    
+    const response = await newsService.getNews({
+      page: 1,
+      limit: 100 // Charger plus d'articles pour le filtrage local
     })
-    .map(a => ({ organization_level: a.organization_level || 'university', ...a }))
-  loading.value = false
+    
+    console.log('📡 Réponse API news:', response)
+    
+    if (response.success && response.data) {
+      // Gérer différentes structures de réponse
+      let articlesList = []
+      
+      if (Array.isArray(response.data)) {
+        articlesList = response.data
+      } else if (response.data.results && Array.isArray(response.data.results)) {
+        articlesList = response.data.results
+      } else if (response.data.news && Array.isArray(response.data.news)) {
+        articlesList = response.data.news
+      } else {
+        console.warn('Structure de réponse API inattendue:', response.data)
+        articlesList = []
+      }
+      
+      console.log('📰 Articles bruts depuis API:', articlesList.length, articlesList)
+      
+      // Filtrage simplifié : disponibilité et université seulement
+      const filteredArticles = articlesList.filter(article => {
+        // 1. Vérifier la disponibilité de l'article (statut publié)
+        const isAvailable = article.status === 'PUBLISHED' || 
+                           article.status === 'published' ||
+                           article.status === 'APPROVED' ||
+                           article.status === 'approved'
+        
+        // 2. Vérifier l'université (si spécifiée dans l'article et utilisateur)
+        const sameUniversity = !article.university_id || 
+                              !props.currentUser.university_id || 
+                              article.university_id === props.currentUser.university_id
+        
+        const canView = isAvailable && sameUniversity
+        
+        console.log('🔍 Filtrage simplifié:', {
+          title: article.title,
+          status: article.status,
+          isAvailable,
+          sameUniversity,
+          canView,
+          articleUniversityId: article.university_id,
+          userUniversityId: props.currentUser.university_id
+        })
+        
+        return canView
+      })
+      
+      // Mapper avec la structure attendue pour l'affichage
+      news.value = filteredArticles.map(article => ({
+        ...article,
+        organization_level: article.organization_level 
+      }))
+      
+      console.log('✅ Articles filtrés affichés:', news.value.length, news.value)
+      
+    } else {
+      throw new Error(response.message || 'Erreur lors du chargement des actualités')
+    }
+  } catch (err) {
+    console.error('❌ Erreur lors du chargement des actualités:', err)
+    error.value = 'Impossible de se connecter à l\'API pour charger les actualités'
+    
+    // Fallback vers localStorage
+    console.log('🔄 Tentative de fallback vers localStorage...')
+    try {
+      const saved = JSON.parse(localStorage.getItem('ccc_news') || '[]')
+      news.value = saved
+        .filter(article => {
+          // Même filtrage simplifié pour localStorage
+          const isAvailable = article.status === 'PUBLISHED' || article.status === 'published'
+          const sameUniversity = !article.university_id || 
+                                !props.currentUser.university_id || 
+                                article.university_id === props.currentUser.university_id
+          return isAvailable && sameUniversity
+        })
+        .map(a => ({ organization_level: a.organization_level || 'university', ...a }))
+      
+      console.log('⚠️ Articles chargés depuis localStorage (fallback):', news.value.length)
+    } catch (fallbackError) {
+      console.error('❌ Erreur fallback localStorage:', fallbackError)
+      news.value = []
+    }
+  } finally {
+    loading.value = false
+  }
 }
 
 const getTabCount = (key) => news.value.filter(a => (a.organization_level || 'university') === key).length
@@ -209,6 +310,7 @@ const changePage = (p) => { if (p >=1 && p <= totalPages.value) currentPage.valu
 const openArticle = (a) => { console.log('open', a) }
 
 const formatDate = (dateStr) => {
+  if (!dateStr) return ''
   const date = new Date(dateStr)
   return date.toLocaleDateString('fr-FR', { 
     year: 'numeric', 

@@ -231,4 +231,17 @@ npm run lint
 
 ---
 
-> 🚀 **Prêt à développer ?** Commencez par le guide qui correspond à votre niveau et vos besoins ! Cette documentation complète couvre tous les aspects de l'application CCC Web News.
+## 📚 Guides Utilisateurs et Installation
+
+### 👤 **Documentation Utilisateur**
+- **[📖 Guide Utilisateur Complet](../GUIDE-UTILISATEUR-COMPLET.md)** - Manuel d'utilisation détaillé avec captures d'écran
+- **[⚡ Installation Rapide](../INSTALLATION-RAPIDE.md)** - Démarrer en 5 minutes
+- **[💻 Guide de Développement](../GUIDE-DEVELOPPEMENT.md)** - Conventions, tests, contribution
+
+### 🖼️ **Captures d'Écran et Workflows**
+- **[📋 Index de Documentation Complète](INDEX-DOCUMENTATION.md)** - Navigation visuelle avec captures d'écran
+- Toutes les captures d'écran sont disponibles dans le dossier `photo/` avec des workflows visuels complets
+
+---
+
+> 🚀 **Prêt à développer ?** Commencez par le guide qui correspond à votre niveau et vos besoins ! Pour les utilisateurs finaux, consultez les [guides d'utilisation](../GUIDE-UTILISATEUR-COMPLET.md). Cette documentation complète couvre tous les aspects de l'application CCC Web News.

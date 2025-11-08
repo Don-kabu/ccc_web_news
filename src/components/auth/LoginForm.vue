@@ -106,102 +106,19 @@
       </p>
     </div>
 
-    <!-- Modal pour rejoindre une université existante -->
-    <div v-if="showJoinUniversityForm" class="modal-overlay" @click="closeJoinUniversityForm">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>Rejoindre une institution existante</h3>
-          <button @click="closeJoinUniversityForm" class="close-button">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <line x1="18" y1="6" x2="6" y2="18" stroke="currentColor" stroke-width="2"/>
-              <line x1="6" y1="6" x2="18" y2="18" stroke="currentColor" stroke-width="2"/>
-            </svg>
-          </button>
-        </div>
-        
-        <form @submit.prevent="handleJoinUniversity" class="join-form">
-          <div class="form-group">
-            <label for="university-select" class="form-label">Choisir une institution</label>
-            <select
-              id="university-select"
-              v-model="joinForm.university_id"
-              class="form-input"
-              required
-            >
-              <option value="">Sélectionner une institution</option>
-              <option 
-                v-for="university in availableUniversities" 
-                :key="university.id" 
-                :value="university.id"
-              >
-                {{ university.name }} - {{ university.city }}
-              </option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label for="join-email" class="form-label">Votre email</label>
-            <input
-              id="join-email"
-              v-model="joinForm.email"
-              type="email"
-              placeholder="votre.email@example.com"
-              class="form-input"
-              required
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="join-password" class="form-label">Mot de passe</label>
-            <input
-              id="join-password"
-              v-model="joinForm.password"
-              type="password"
-              placeholder="••••••••"
-              class="form-input"
-              required
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="join-role" class="form-label">Votre rôle</label>
-            <select
-              id="join-role"
-              v-model="joinForm.role"
-              class="form-input"
-              required
-            >
-              <option value="">Sélectionner votre rôle</option>
-              <option value="student">Étudiant</option>
-              <option value="teacher">Enseignant</option>
-              <option value="staff">Personnel administratif</option>
-            </select>
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" @click="closeJoinUniversityForm" class="secondary-button">
-              Annuler
-            </button>
-            <button type="submit" class="primary-button" :disabled="isLoading">
-              <span v-if="!isLoading">Rejoindre</span>
-              <div v-else class="loading-spinner">
-                <svg class="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" opacity="0.25"/>
-                  <path d="M4 12A8 8 0 0 1 12 4" stroke="currentColor" stroke-width="4"/>
-                </svg>
-                <span>Traitement...</span>
-              </div>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <!-- Composant pour rejoindre une université existante -->
+    <JoinUniversityForm 
+      v-if="showJoinUniversityForm"
+      @success="handleJoinUniversitySuccess"
+      @cancel="closeJoinUniversityForm"
+    />
   </form>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { authService, universityService } from '@/services'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { authService } from '@/services/auth.service.js'
+import JoinUniversityForm from './JoinUniversityForm.vue'
 
 // Émissions
 const emit = defineEmits(['login-success', 'switch-to-register'])
@@ -213,18 +130,10 @@ const loginForm = reactive({
   rememberMe: false
 })
 
-const joinForm = reactive({
-  university_id: '',
-  email: '',
-  password: '',
-  role: ''
-})
-
 const showPassword = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
 const showJoinUniversityForm = ref(false)
-const availableUniversities = ref([])
 
 // Méthodes
 const togglePasswordVisibility = () => {
@@ -260,76 +169,14 @@ const handleLogin = async () => {
   }
 }
 
-const handleJoinUniversity = async () => {
-  isLoading.value = true
-  errorMessage.value = ''
-
-  try {
-    // Récupérer l'université sélectionnée
-    const selectedUniversity = availableUniversities.value.find(u => u.id === joinForm.university_id)
-    
-    if (!selectedUniversity) {
-      throw new Error('Veuillez sélectionner une institution')
-    }
-
-    // Utiliser le service d'authentification pour l'inscription
-    const response = await authService.register({
-      email: joinForm.email,
-      password: joinForm.password,
-      role: joinForm.role || 'STUDENT',
-      university_id: selectedUniversity.id,
-      firstname: '',
-      lastname: '',
-      username: joinForm.email.split('@')[0]
-    })
-
-    if (response.status === 'success') {
-      closeJoinUniversityForm()
-      emit('login-success', response.data.user)
-    } else {
-      throw new Error(response.message || 'Erreur lors de l\'inscription')
-    }
-  } catch (error) {
-    console.error('Erreur d\'inscription:', error)
-    errorMessage.value = error.message || 'Erreur lors de l\'inscription'
-  } finally {
-    isLoading.value = false
-  }
-}
-
 const closeJoinUniversityForm = () => {
   showJoinUniversityForm.value = false
-  // Réinitialiser le formulaire
-  Object.assign(joinForm, {
-    university_id: '',
-    email: '',
-    password: '',
-    role: ''
-  })
-  errorMessage.value = ''
 }
 
-const openJoinUniversityForm = () => {
-  showJoinUniversityForm.value = true
-}
-
-// Charger les universités au montage du composant
-const loadUniversities = async () => {
-  try {
-    const response = await universityService.getUniversities({
-      status: 'active',
-      limit: 100
-    })
-    
-    if (response.status === 'success') {
-      availableUniversities.value = response.data.universities || response.data
-    }
-  } catch (error) {
-    console.error('Erreur lors du chargement des universités:', error)
-    // Fallback vers localStorage en cas d'erreur API
-    const universities = JSON.parse(localStorage.getItem('ccc_universities') || '[]')
-    availableUniversities.value = universities
-  }
+const handleJoinUniversitySuccess = (userData) => {
+  console.log('✅ Rejoindre université réussie:', userData)
+  emit('login-success', userData)
+  showJoinUniversityForm.value = false
 }
 
 // Vérifier s'il y a un utilisateur mémorisé
@@ -346,14 +193,8 @@ const checkRememberedUser = () => {
   }
 }
 
-const loadAvailableUniversities = () => {
-  const universities = JSON.parse(localStorage.getItem('ccc_universities') || '[]')
-  availableUniversities.value = universities
-}
-
 // Initialisation
 onMounted(() => {
-  loadUniversities()
   checkRememberedUser()
 })
 </script>
@@ -610,6 +451,31 @@ onMounted(() => {
   background: var(--border-light);
 }
 
+.debug-info {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.debug-info small {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.no-universities-message {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.no-universities-message small {
+  color: #ef4444;
+}
+
 @media (max-width: 768px) {
   .login-container {
     padding: 1rem;
@@ -797,5 +663,26 @@ onMounted(() => {
   .modal-actions {
     flex-direction: column;
   }
+}
+
+/* Styles pour les erreurs de validation */
+.form-input.error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+}
+
+.field-error {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  padding-left: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.field-error::before {
+  content: "⚠";
+  font-size: 0.875rem;
 }
 </style>

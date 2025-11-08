@@ -81,14 +81,16 @@
 
       <!-- Menu utilisateur -->
       <div class="navbar-user">
+        <!-- Bouton de thème -->
+        <ThemeToggle />
+        
         <!-- Bouton notifications -->
-        <button @click="$emit('notifications-click')" class="notifications-button">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M18 8C18 6.4087 17.3679 4.88258 16.2426 3.75736C15.1174 2.63214 13.5913 2 12 2C10.4087 2 8.88258 2.63214 7.75736 3.75736C6.63214 4.88258 6 6.4087 6 8C6 15 3 17 3 17H21C21 17 18 15 18 8Z" stroke="currentColor" stroke-width="2"/>
-            <path d="M13.73 21C13.5542 21.3031 13.3019 21.5547 12.9982 21.7295C12.6946 21.9044 12.3504 21.9965 12 21.9965C11.6496 21.9965 11.3054 21.9044 11.0018 21.7295C10.6982 21.5547 10.4458 21.3031 10.27 21" stroke="currentColor" stroke-width="2"/>
-          </svg>
-          <span v-if="unreadCount > 0" class="notification-badge">{{ unreadCount }}</span>
-        </button>
+        <!-- Notifications -->
+        <NotificationBell 
+          :current-user="currentUser"
+          @notification-click="handleNotificationClick"
+          @view-all="handleViewAllNotifications"
+        />
 
         <div class="user-dropdown" :class="{ open: showUserMenu }">
           <button @click="toggleUserMenu" class="user-button">
@@ -124,6 +126,20 @@
               Paramètres
             </button>
             
+            <!-- Bouton Gérer (Admin uniquement) -->
+            <button 
+              v-if="canManageUsers()" 
+              @click="handleAdminClick" 
+              class="dropdown-item admin-manage"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Gérer API
+            </button>
+            
             <div class="dropdown-divider"></div>
             
             <button @click="handleLogout" class="dropdown-item logout">
@@ -145,6 +161,8 @@
 import { ref, computed } from 'vue'
 import { usePermissions } from '../../composables/usePermissions.js'
 import { PERMISSIONS } from '../../composables/usePermissions.js'
+import NotificationBell from '../NotificationBell.vue'
+import ThemeToggle from '../ui/ThemeToggle.vue'
 
 const props = defineProps({
   currentUser: {
@@ -155,13 +173,9 @@ const props = defineProps({
     type: String,
     required: true
   },
-  unreadCount: {
-    type: Number,
-    default: 0
-  }
 })
 
-const emit = defineEmits(['tab-change', 'logout', 'profile-click', 'settings-click', 'notifications-click'])
+const emit = defineEmits(['tab-change', 'logout', 'profile-click', 'settings-click', 'notifications-click', 'notification-click', 'view-all-notifications'])
 
 const showUserMenu = ref(false)
 
@@ -178,17 +192,17 @@ const getRoleLabel = (role) => {
 
 // Vérifier si l'utilisateur peut publier
 const canPublish = () => {
-  return hasPermission(PERMISSIONS.CREATE_NEWS)
+  return hasPermission.value(PERMISSIONS.CREATE_NEWS)
 }
 
 // Vérifier si l'utilisateur peut modérer
 const canModerate = () => {
-  return hasPermission(PERMISSIONS.MODERATE_NEWS)
+  return hasPermission.value(PERMISSIONS.MODERATE_NEWS)
 }
 
 // Vérifier si l'utilisateur peut gérer les utilisateurs
 const canManageUsers = () => {
-  return hasPermission(PERMISSIONS.MANAGE_USERS)
+  return hasPermission.value(PERMISSIONS.MANAGE_USERS)
 }
 
 const handleProfileClick = () => {
@@ -201,18 +215,33 @@ const handleSettingsClick = () => {
   emit('settings-click')
 }
 
+const handleAdminClick = () => {
+  showUserMenu.value = false
+  // Ouvrir l'interface d'administration Django dans un nouvel onglet
+  const adminUrl = 'https://univers-news-ccc-kabu.onrender.com/admin/'
+  window.open(adminUrl, '_blank', 'noopener,noreferrer')
+}
+
 const handleLogout = () => {
   showUserMenu.value = false
   emit('logout')
+}
+
+const handleNotificationClick = (notification) => {
+  emit('notification-click', notification)
+}
+
+const handleViewAllNotifications = () => {
+  emit('view-all-notifications')
 }
 </script>
 
 <style scoped>
 .navbar {
-  background: rgba(255, 255, 255, 0.95);
+  background-color: var(--color-nav-bg);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--color-border-primary);
+  box-shadow: var(--shadow-lg);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -249,14 +278,14 @@ const handleLogout = () => {
 .brand-info h2 {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--color-nav-text);
   margin: 0;
   line-height: 1.2;
 }
 
 .brand-subtitle {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--color-text-muted);
   font-weight: 500;
 }
 
@@ -304,46 +333,9 @@ const handleLogout = () => {
   gap: 1rem;
 }
 
-.notifications-button {
-  position: relative;
-  width: 44px;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
+/* Notifications styles removed - using NotificationBell component */
 
-.notifications-button:hover {
-  background: rgba(255, 255, 255, 0.95);
-  color: var(--primary-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
-}
-
-.notification-badge {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  background: #ef4444;
-  color: white;
-  font-size: 0.625rem;
-  font-weight: 600;
-  padding: 0.125rem 0.375rem;
-  border-radius: 9999px;
-  min-width: 1.125rem;
-  height: 1.125rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid white;
-  animation: pulse 2s infinite;
-}
+/* .user-dropdown {} */
 
 @keyframes pulse {
   0%, 100% {
@@ -458,6 +450,15 @@ const handleLogout = () => {
   background: rgba(239, 68, 68, 0.1);
 }
 
+.dropdown-item.admin-manage {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.dropdown-item.admin-manage:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
 .dropdown-divider {
   height: 1px;
   background: var(--border-color);
@@ -522,11 +523,6 @@ const handleLogout = () => {
     left: auto;
     min-width: 200px;
   }
-  
-  .notifications-button {
-    width: 40px;
-    height: 40px;
-  }
 }
 
 @media (max-width: 480px) {
@@ -554,13 +550,8 @@ const handleLogout = () => {
     height: 16px;
   }
   
-  .navbar-user {
+  .nav-tabs {
     gap: 0.5rem;
-  }
-  
-  .notifications-button {
-    width: 36px;
-    height: 36px;
   }
   
   .user-button {
@@ -600,17 +591,6 @@ const handleLogout = () => {
   .nav-tab svg {
     width: 14px;
     height: 14px;
-  }
-  
-  .notifications-button {
-    width: 32px;
-    height: 32px;
-  }
-  
-  .notification-badge {
-    font-size: 0.55rem;
-    min-width: 1rem;
-    height: 1rem;
   }
 }
 

@@ -28,13 +28,6 @@ coverage
 
 .eslintcache
 
-# Cypress
-/cypress/videos/
-/cypress/screenshots/
-
-# Vitest
-__screenshots__/
-
 # Environment variables (keep local copies only)
 .env.local
 .env.*.local

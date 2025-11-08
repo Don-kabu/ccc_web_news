@@ -9,7 +9,7 @@
 
     <div class="admin-tabs">
       <button 
-        @click="activeTab = 'users'"
+        @click="handleTabClick('users')"
         :class="['tab-button', { active: activeTab === 'users' }]"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -22,7 +22,7 @@
       </button>
       
       <button 
-        @click="activeTab = 'settings'"
+        @click="handleTabClick('settings')"
         :class="['tab-button', { active: activeTab === 'settings' }]"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -33,7 +33,7 @@
       </button>
       
       <button 
-        @click="activeTab = 'stats'"
+        @click="handleTabClick('stats')"
         :class="['tab-button', { active: activeTab === 'stats' }]"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -58,10 +58,11 @@
               v-model="userSearchQuery" 
               type="text" 
               placeholder="Rechercher un utilisateur..."
+              :disabled="loading"
             />
           </div>
           
-          <select v-model="roleFilter" class="role-filter">
+          <select v-model="roleFilter" class="role-filter" :disabled="loading">
             <option value="">Tous les rôles</option>
             <option value="ADMIN">Administrateurs</option>
             <option value="MODERATOR">Modérateurs</option>
@@ -71,28 +72,53 @@
         </div>
       </div>
 
-      <div class="users-stats">
-        <div class="stat-card">
-          <div class="stat-number">{{ users.length }}</div>
-          <div class="stat-label">Total utilisateurs</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">{{ getUsersByRole('ADMIN').length }}</div>
-          <div class="stat-label">Administrateurs</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">{{ getUsersByRole('MODERATOR').length }}</div>
-          <div class="stat-label">Modérateurs</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">{{ getUsersByRole('PUBLIANT').length }}</div>
-          <div class="stat-label">Publiants</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">{{ getUsersByRole('STUDENT').length }}</div>
-          <div class="stat-label">Étudiants</div>
+      <!-- Affichage de l'université actuelle -->
+      <div v-if="currentUser.university" class="establishment-info">
+        <div class="info-card">
+          <strong>Université:</strong> {{ currentUser.university.name || 'Non définie' }}
+          <span class="user-count">({{ users.length }} utilisateur{{ users.length > 1 ? 's' : '' }})</span>
         </div>
       </div>
+
+      <!-- État de chargement -->
+      <div v-if="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Chargement des utilisateurs de votre établissement...</p>
+      </div>
+
+      <!-- État d'erreur -->
+      <div v-else-if="error" class="error-state">
+        <div class="error-icon">⚠️</div>
+        <p>{{ error }}</p>
+        <button @click="loadUsers" class="retry-btn">
+          Réessayer
+        </button>
+      </div>
+
+      <!-- Contenu normal -->
+      <div v-else>
+        <div class="users-stats">
+          <div class="stat-card">
+            <div class="stat-number">{{ users.length }}</div>
+            <div class="stat-label">Total utilisateurs</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">{{ getUsersByRole('ADMIN').length }}</div>
+            <div class="stat-label">Administrateurs</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">{{ getUsersByRole('MODERATOR').length }}</div>
+            <div class="stat-label">Modérateurs</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">{{ getUsersByRole('PUBLIANT').length }}</div>
+            <div class="stat-label">Publiants</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">{{ getUsersByRole('STUDENT').length }}</div>
+            <div class="stat-label">Étudiants</div>
+          </div>
+        </div>
 
       <div class="users-table">
         <table>
@@ -216,7 +242,22 @@
     <!-- Onglet Statistiques -->
     <div v-if="activeTab === 'stats'" class="tab-content">
       <div class="stats-section">
-        <h2>Statistiques de la Plateforme</h2>
+        <div class="section-header">
+          <h2>Statistiques de la Plateforme</h2>
+          <button 
+            @click="loadStatistics()"
+            :disabled="statsLoading"
+            class="refresh-btn"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" :class="{ 'animate-spin': statsLoading }">
+              <path d="M1 4V10H7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M3.51 15A9 9 0 0 0 21 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M23 20V14H17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M20.49 9A9 9 0 0 0 3 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Actualiser
+          </button>
+        </div>
         
         <div class="stats-overview">
           <div class="overview-card">
@@ -310,17 +351,36 @@
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { usePermissions } from '../../composables/usePermissions.js'
+import { userService } from '../../services/user.service.js'
 
-const { getRoleDisplayName } = usePermissions()
+const props = defineProps({
+  currentUser: {
+    type: Object,
+    required: true
+  }
+})
+
+// Fonction pour afficher les noms de rôles en français
+const getRoleDisplayName = (role) => {
+  switch(role) {
+    case 'ADMIN': return 'Administrateur'
+    case 'MODERATOR': return 'Modérateur'  
+    case 'PUBLIANT': return 'Publiant'
+    case 'STUDENT': return 'Étudiant'
+    default: return role || 'Utilisateur'
+  }
+}
 
 // État réactif
 const activeTab = ref('users')
 const users = ref([])
+const loading = ref(false)
+const error = ref(null)
 const userSearchQuery = ref('')
 const roleFilter = ref('')
 const editingUser = ref(null)
@@ -331,15 +391,198 @@ const requireModeration = ref(true)
 const emailNotifications = ref(false)
 const maxFileSize = ref(50)
 
+// Variables pour les statistiques
+const allNews = ref([])
+const statsLoading = ref(false)
+
 onMounted(() => {
+  // Initialiser les données de test si nécessaire
+  initializeTestData()
+  
+  // Charger les données
   loadUsers()
   loadSettings()
+  loadStatistics()
 })
 
-const loadUsers = () => {
+const loadUsers = async () => {
+  try {
+    loading.value = true
+    error.value = null
+    
+    // Vérifier que l'utilisateur est admin
+    if (props.currentUser.role !== 'ADMIN') {
+      throw new Error('Accès non autorisé - Admin requis')
+    }
+    
+    console.log('🔄 Chargement des utilisateurs de l\'université...')
+    console.log('🏫 Admin données complètes:', {
+      email: props.currentUser.email,
+      role: props.currentUser.role,
+      university: props.currentUser.university,
+      university_id: props.currentUser.university_id,
+      fullUser: props.currentUser
+    })
+    
+    // Vérifier que l'utilisateur admin a une université
+    if (!props.currentUser.university_id && !props.currentUser.university?.id) {
+      console.warn('⚠️ Utilisateur admin sans université définie, ajout automatique...')
+      
+      // Ajouter une université par défaut
+      const defaultUniversity = {
+        id: 'univ_ccc',
+        name: 'CCC Web News University'
+      }
+      
+      // Mettre à jour l'utilisateur actuel avec l'université
+      const updatedUser = {
+        ...props.currentUser,
+        university_id: defaultUniversity.id,
+        university: defaultUniversity
+      }
+      
+      localStorage.setItem('ccc_currentUser', JSON.stringify(updatedUser))
+      console.log('✅ Université par défaut ajoutée:', defaultUniversity)
+      
+      // Émettre un événement pour mettre à jour l'utilisateur dans le parent
+      window.dispatchEvent(new CustomEvent('user-updated', { detail: updatedUser }))
+    }
+    
+    const response = await userService.getUsersForCurrentAdmin()
+    
+    if (response.success && response.data) {
+      // Gérer différentes structures de réponse
+      let usersList = []
+      
+      if (Array.isArray(response.data)) {
+        usersList = response.data
+      } else if (response.data.results && Array.isArray(response.data.results)) {
+        usersList = response.data.results
+      } else if (response.data.users && Array.isArray(response.data.users)) {
+        usersList = response.data.users
+      }
+      
+      console.log('📋 Utilisateurs reçus:', usersList.length)
+      
+      // Formater et filtrer les utilisateurs par université
+      const currentUserUniversityId = props.currentUser.university_id || props.currentUser.university?.id
+      console.log('🔍 Filtrage par université ID:', currentUserUniversityId)
+      
+      users.value = usersList
+        .map(user => userService.formatUser(user))
+        .filter(user => {
+          if (!currentUserUniversityId) {
+            // Si l'admin n'a pas d'université définie, prendre tous
+            console.log('⚠️ Pas de filtrage par université - affichage de tous les utilisateurs')
+            return true
+          }
+          
+          const userUniversityId = user.university_id || user.university?.id
+          const isSameUniversity = userUniversityId === currentUserUniversityId
+          
+          if (import.meta.env.DEV) {
+            console.log('👤 Filtrage user:', user.email, 'Université user:', userUniversityId, 'Admin université:', currentUserUniversityId, 'Match:', isSameUniversity)
+          }
+          
+          return isSameUniversity
+        })
+      
+      console.log('✅ Utilisateurs filtrés pour l\'université:', users.value.length)
+    } else {
+      throw new Error(response.message || 'Réponse API invalide')
+    }
+  } catch (err) {
+    console.error('❌ Erreur lors du chargement des utilisateurs:', err)
+    error.value = err.message || 'Impossible de charger les utilisateurs de l\'université'
+    
+    // Fallback : charger depuis localStorage seulement en cas d'erreur API
+    console.log('🔄 Tentative de fallback vers les données locales...')
+    loadUsersFromLocalStorage()
+  } finally {
+    loading.value = false
+  }
+}
+
+// Initialiser des données de test si nécessaire
+const initializeTestData = () => {
   const savedUsers = localStorage.getItem('ccc_users')
-  if (savedUsers) {
-    users.value = JSON.parse(savedUsers)
+  if (!savedUsers || JSON.parse(savedUsers).length === 0) {
+    const testUsers = [
+      {
+        id: '1',
+        email: 'admin@ccc.com',
+        first_name: 'Admin',
+        last_name: 'CCC',
+        role: 'ADMIN',
+        university_id: 'univ_1',
+        university: { id: 'univ_1', name: 'CCC Web News University' },
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: '2', 
+        email: 'prof@ccc.com',
+        first_name: 'Professeur',
+        last_name: 'Test',
+        role: 'PUBLIANT',
+        university_id: 'univ_1',
+        university: { id: 'univ_1', name: 'CCC Web News University' },
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: '3',
+        email: 'student@ccc.com', 
+        first_name: 'Étudiant',
+        last_name: 'Test',
+        role: 'STUDENT',
+        university_id: 'univ_1',
+        university: { id: 'univ_1', name: 'CCC Web News University' },
+        is_active: true,
+        created_at: new Date().toISOString()
+      }
+    ]
+    
+    localStorage.setItem('ccc_users', JSON.stringify(testUsers))
+    console.log('🧪 Données de test initialisées:', testUsers.length, 'utilisateurs')
+  }
+}
+
+// Fallback vers localStorage en cas d'erreur API
+const loadUsersFromLocalStorage = () => {
+  try {
+    const savedUsers = localStorage.getItem('ccc_users')
+    if (savedUsers) {
+      const allUsers = JSON.parse(savedUsers)
+      
+      console.log('📋 Utilisateurs dans localStorage:', allUsers.length)
+      console.log('🔍 Admin université ID:', props.currentUser.university_id)
+      
+      // Filtrer par université de l'admin
+      const currentUserUniversityId = props.currentUser.university_id
+      if (currentUserUniversityId) {
+        // Filtrer strictement par université
+        users.value = allUsers.filter(user => {
+          const userUniversityId = user.university_id || user.university?.id
+          const isSameUniversity = userUniversityId === currentUserUniversityId
+          
+          if (import.meta.env.DEV) {
+            console.log('👤 User:', user.email, 'Université:', userUniversityId, 'Match:', isSameUniversity)
+          }
+          
+          return isSameUniversity
+        })
+      } else {
+        // Si pas d'université définie pour l'admin, prendre tous les utilisateurs
+        console.warn('⚠️ Admin sans université définie, affichage de tous les utilisateurs')
+        users.value = allUsers
+      }
+      
+      console.log('⚠️ Utilisateurs filtrés depuis localStorage:', users.value.length, 'utilisateurs')
+    }
+  } catch (err) {
+    console.error('Erreur lors du chargement depuis localStorage:', err)
+    users.value = []
   }
 }
 
@@ -352,6 +595,86 @@ const loadSettings = () => {
     emailNotifications.value = settings.emailNotifications || false
     maxFileSize.value = settings.maxFileSize || 50
   }
+}
+
+// Charger les statistiques depuis l'API
+const loadStatistics = async () => {
+  try {
+    statsLoading.value = true
+    console.log('🔄 Chargement des statistiques...')
+    
+    // Importer le service news
+    const { newsService } = await import('../../services/news.service.js')
+    
+    // Récupérer toutes les news pour les statistiques
+    const response = await newsService.getNews({
+      limit: 1000, // Récupérer toutes les news
+      university_id: props.currentUser.university_id || props.currentUser.university?.id
+    })
+    
+    if (response.success && response.data) {
+      // Gérer différentes structures de réponse
+      let newsList = []
+      
+      if (Array.isArray(response.data)) {
+        newsList = response.data
+      } else if (response.data.results && Array.isArray(response.data.results)) {
+        newsList = response.data.results
+      } else if (response.data.news && Array.isArray(response.data.news)) {
+        newsList = response.data.news
+      }
+      
+      allNews.value = newsList
+      console.log('📊 Statistiques chargées:', newsList.length, 'articles')
+    } else {
+      console.warn('⚠️ Pas de données news récupérées depuis l\'API, utilisation du fallback localStorage')
+      // Fallback vers localStorage
+      const savedNews = localStorage.getItem('ccc_news')
+      allNews.value = savedNews ? JSON.parse(savedNews) : []
+    }
+  } catch (error) {
+    console.error('❌ Erreur lors du chargement des statistiques:', error)
+    
+    // Fallback vers localStorage en cas d'erreur
+    const savedNews = localStorage.getItem('ccc_news')
+    allNews.value = savedNews ? JSON.parse(savedNews) : []
+    
+    // Créer des données de test si aucune donnée n'est disponible
+    if (allNews.value.length === 0) {
+      allNews.value = createMockNewsData()
+    }
+  } finally {
+    statsLoading.value = false
+  }
+}
+
+// Créer des données de test pour les statistiques
+const createMockNewsData = () => {
+  const currentUniversityId = props.currentUser.university_id || props.currentUser.university?.id
+  
+  return [
+    {
+      id: 'news_1',
+      title: 'Nouvelle bibliothèque universitaire',
+      status: 'approved',
+      university_id: currentUniversityId,
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() // Hier
+    },
+    {
+      id: 'news_2', 
+      title: 'Conférence sur l\'IA',
+      status: 'pending',
+      university_id: currentUniversityId,
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString() // Il y a 2 jours
+    },
+    {
+      id: 'news_3',
+      title: 'Événement étudiant',
+      status: 'approved', 
+      university_id: currentUniversityId,
+      created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString() // Il y a 3 jours
+    }
+  ]
 }
 
 const saveSettings = () => {
@@ -393,12 +716,20 @@ const getUsersByRole = (role) => {
 }
 
 const totalArticles = computed(() => {
-  const savedNews = localStorage.getItem('ccc_news')
-  return savedNews ? JSON.parse(savedNews).filter(article => article.status === 'approved').length : 0
+  if (statsLoading.value) return '...'
+  
+  // Compter les articles approuvés de l'université
+  const currentUniversityId = props.currentUser.university_id || props.currentUser.university?.id
+  return allNews.value.filter(article => 
+    article.status === 'approved' && 
+    article.university_id === currentUniversityId
+  ).length
 })
 
 const activeUsers = computed(() => {
-  // Simuler les utilisateurs actifs (connectés dans les 7 derniers jours)
+  if (loading.value) return '...'
+  
+  // Compter les utilisateurs actifs (connectés dans les 7 derniers jours)
   const weekAgo = new Date()
   weekAgo.setDate(weekAgo.getDate() - 7)
   return users.value.filter(user => 
@@ -407,12 +738,41 @@ const activeUsers = computed(() => {
 })
 
 const pendingArticles = computed(() => {
-  const savedNews = localStorage.getItem('ccc_news')
-  return savedNews ? JSON.parse(savedNews).filter(article => article.status === 'pending').length : 0
+  if (statsLoading.value) return '...'
+  
+  // Compter les articles en attente de l'université
+  const currentUniversityId = props.currentUser.university_id || props.currentUser.university?.id
+  return allNews.value.filter(article => 
+    article.status === 'pending' && 
+    article.university_id === currentUniversityId
+  ).length
 })
+
+// Actions onglets
+const handleTabClick = (tabName) => {
+  activeTab.value = tabName
+  
+  // Recharger les données spécifiques à l'onglet
+  if (tabName === 'stats') {
+    console.log('🔄 Rechargement des statistiques...')
+    loadStatistics()
+  } else if (tabName === 'users') {
+    console.log('🔄 Rechargement des utilisateurs...')
+    loadUsers()
+  } else if (tabName === 'settings') {
+    console.log('🔄 Rechargement des paramètres...')
+    loadSettings()
+  }
+}
 
 // Actions utilisateurs
 const editUser = (user) => {
+  // Vérifier les permissions avant d'éditer
+  if (!userService.canModifyUser(user, props.currentUser)) {
+    alert('Vous ne pouvez pas modifier cet utilisateur (établissement différent)')
+    return
+  }
+  
   editingUser.value = { ...user }
 }
 
@@ -420,24 +780,91 @@ const closeEditModal = () => {
   editingUser.value = null
 }
 
-const saveUser = () => {
-  const index = users.value.findIndex(u => u.id === editingUser.value.id)
-  if (index !== -1) {
-    users.value[index] = { ...editingUser.value }
-    localStorage.setItem('ccc_users', JSON.stringify(users.value))
+const saveUser = async () => {
+  try {
+    loading.value = true
+    
+    // Vérifier les permissions
+    if (!userService.canModifyUser(editingUser.value, props.currentUser)) {
+      throw new Error('Permission refusée pour modifier cet utilisateur')
+    }
+    
+    const response = await userService.updateUser(editingUser.value.id, {
+      first_name: editingUser.value.first_name,
+      last_name: editingUser.value.last_name,
+      email: editingUser.value.email,
+      role: editingUser.value.role
+    })
+    
+    if (response.success) {
+      // Mettre à jour la liste locale
+      const index = users.value.findIndex(u => u.id === editingUser.value.id)
+      if (index !== -1) {
+        users.value[index] = { ...editingUser.value }
+      }
+      
+      // Aussi mettre à jour localStorage comme fallback
+      const savedUsers = JSON.parse(localStorage.getItem('ccc_users') || '[]')
+      const savedIndex = savedUsers.findIndex(u => u.id === editingUser.value.id)
+      if (savedIndex !== -1) {
+        savedUsers[savedIndex] = { ...editingUser.value }
+        localStorage.setItem('ccc_users', JSON.stringify(savedUsers))
+      }
+      
+      console.log('✅ Utilisateur mis à jour via API')
+    } else {
+      throw new Error(response.message || 'Erreur lors de la mise à jour')
+    }
+  } catch (error) {
+    console.error('❌ Erreur lors de la sauvegarde:', error)
+    alert(`Erreur lors de la sauvegarde: ${error.message}`)
+  } finally {
+    loading.value = false
   }
+  
   closeEditModal()
 }
 
-const deleteUser = (user) => {
-  if (user.role === 'ADMIN' && getUsersByRole('ADMIN').length === 1) {
-    alert('Impossible de supprimer le dernier administrateur!')
+const deleteUser = async (user) => {
+  // Vérifier les permissions
+  if (!userService.canDeleteUser(user, props.currentUser, users.value)) {
+    if (user.role === 'ADMIN' && getUsersByRole('ADMIN').length === 1) {
+      alert('Impossible de supprimer le dernier administrateur de l\'établissement!')
+    } else if (props.currentUser.id === user.id) {
+      alert('Vous ne pouvez pas supprimer votre propre compte!')
+    } else {
+      alert('Vous ne pouvez pas supprimer cet utilisateur (établissement différent)')
+    }
     return
   }
   
-  if (confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur ${user.first_name} ${user.last_name} ?`)) {
-    users.value = users.value.filter(u => u.id !== user.id)
-    localStorage.setItem('ccc_users', JSON.stringify(users.value))
+  if (!confirm(`Êtes-vous sûr de vouloir supprimer l'utilisateur ${user.first_name} ${user.last_name} ?`)) {
+    return
+  }
+  
+  try {
+    loading.value = true
+    
+    const response = await userService.deleteUser(user.id)
+    
+    if (response.success) {
+      // Retirer de la liste locale
+      users.value = users.value.filter(u => u.id !== user.id)
+      
+      // Aussi retirer de localStorage comme fallback
+      const savedUsers = JSON.parse(localStorage.getItem('ccc_users') || '[]')
+      const filteredUsers = savedUsers.filter(u => u.id !== user.id)
+      localStorage.setItem('ccc_users', JSON.stringify(filteredUsers))
+      
+      console.log('✅ Utilisateur supprimé via API')
+    } else {
+      throw new Error(response.message || 'Erreur lors de la suppression')
+    }
+  } catch (error) {
+    console.error('❌ Erreur lors de la suppression:', error)
+    alert(`Erreur lors de la suppression: ${error.message}`)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -706,6 +1133,78 @@ const formatDate = (dateString) => {
 .role-student {
   background: #f0fdf4;
   color: #16a34a;
+}
+
+.establishment-info {
+  margin-bottom: 1.5rem;
+}
+
+.info-card {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.user-count {
+  color: #64748b;
+  font-size: 0.85rem;
+  margin-left: 0.5rem;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #6b7280;
+}
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #6b7280;
+}
+
+.error-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.retry-btn {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: all 0.2s ease;
+}
+
+.retry-btn:hover {
+  background: #2563eb;
 }
 
 .user-actions {
@@ -1028,6 +1527,57 @@ const formatDate = (dateString) => {
 .cancel-btn:hover {
   background: #e5e7eb;
 }
+
+/* === STYLES POUR LES NOUVEAUX ÉLÉMENTS === */
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.section-header h2 {
+  margin: 0;
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.refresh-btn svg.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* === RESPONSIVE DESIGN === */
 
 @media (max-width: 1200px) {
   .stats-grid {

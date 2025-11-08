@@ -7,6 +7,16 @@ export { newsService } from './news.service.js'
 export { userService } from './user.service.js'
 export { universityService } from './university.service.js'
 export { moderationService } from './moderation.service.js'
+export { passwordValidator } from './password-validator.service.js'
+import { API_CONFIG, API_RESPONSE_TYPES } from './api.config.js'
+import { authService } from './auth.service.js'
+import { httpService } from './http.service.js'
+import { newsService } from './news.service.js'
+import { userService } from './user.service.js'
+import { universityService } from './university.service.js'
+import { moderationService } from './moderation.service.js'
+import { passwordValidator } from './password-validator.service.js'
+
 
 // Importer la configuration API
 export {
@@ -220,8 +230,9 @@ class ApiServiceManager {
   // Vérifier la santé de l'API
   async checkApiHealth() {
     try {
-      const response = await httpService.get('/health')
-      return response.status === API_RESPONSE_TYPES.SUCCESS
+      // Utiliser un endpoint simple qui existe pour vérifier la santé de l'API
+      const response = await httpService.get('/universities/', { page: 1, limit: 1 })
+      return response.success === true
     } catch (error) {
       console.error('API non disponible:', error)
       return false
@@ -244,5 +255,43 @@ if (import.meta.env.DEV) {
     university: universityService,
     moderation: moderationService,
     manager: apiServiceManager
+  }
+  
+  // Fonction de test des headers d'authentification
+  window.__CCC_TEST_AUTH__ = async () => {
+    try {
+      console.log('🧪 Test global des headers d\'authentification...')
+      return await universityService.testAuthHeaders()
+    } catch (error) {
+      console.error('❌ Test global échoué:', error)
+      return error
+    }
+  }
+
+  // Fonction de test pour simuler des erreurs de validation
+  window.__CCC_TEST_VALIDATION_ERRORS__ = () => {
+    console.log('🧪 Simulation d\'erreurs de validation...')
+    
+    const mockValidationError = {
+      status: 422,
+      response: {
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Données invalides',
+          details: {
+            email: 'Cette adresse email existe déjà',
+            phone: 'Le numéro de téléphone doit commencer par +243',
+            password: 'Le mot de passe doit contenir au moins 8 caractères',
+            first_name: 'Le prénom est requis',
+            university_id: 'Vous devez sélectionner une institution'
+          }
+        }
+      }
+    }
+
+    console.log('Exemple d\'erreur de validation:', mockValidationError)
+    console.log('Pour tester, ouvrez la modal d\'inscription et essayez avec des données invalides')
+    
+    return mockValidationError
   }
 }

@@ -1,0 +1,22 @@
+import { ref, computed, onMounted } from 'vue'
+import LoginForm from './components/auth/LoginForm.vue'
+import RegisterForm from './components/auth/RegisterForm.vue'
+import Navbar from './components/layout/Navbar.vue'
+import HomePage from './components/pages/HomePage.vue'
+import NewsPage from './components/pages/NewsPage.vue'
+import PublishPage from './components/pages/PublishPage.vue'
+import ModerationPage from './components/pages/ModerationPage.vue'
+import AdminPage from './components/pages/AdminPage.vue'
+import UserProfile from './components/pages/UserProfile.vue'
+import NotificationPanel from './components/NotificationPanel.vue'
+import NotificationSettings from './components/pages/NotificationSettings.vue'
+import ThemeToggle from './components/ui/ThemeToggle.vue'
+import { usePermissions } from './composables/usePermissions.js'
+import { useTheme } from './composables/useTheme.js'
+import { PERMISSIONS } from './composables/usePermissions.js'
+import { notificationService } from './services/notificationService.js'
+import { authService } from './services/auth.service.js'
+import { universityService } from './services/university.service.js'
+
+// Initialiser le thème
+const { isDarkMode } = useTheme()

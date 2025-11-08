@@ -1,4 +1,5 @@
 import { API_CONFIG, getAuthHeaders, buildApiUrl, createApiResponse, API_RESPONSE_TYPES, HTTP_STATUS } from './api.config.js'
+import { validateApiRequest, validateApiResponse } from './api-schema-validator.js'
 
 // Classe pour gérer les erreurs API
 class ApiError extends Error {
@@ -30,9 +31,12 @@ class HttpService {
 
     // Log des requêtes en mode développement
     if (import.meta.env.DEV) {
+      const token = localStorage.getItem('ccc_access_token')
       console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`, {
         headers,
-        body: options.body
+        body: options.body,
+        hasToken: !!token,
+        tokenPreview: token ? `${token.substring(0, 20)}...` : 'Aucun token'
       })
     }
 
@@ -127,6 +131,15 @@ class HttpService {
 
   // Méthode POST
   async post(endpoint, data = null, contentType = 'application/json') {
+    // Validation avant envoi (en mode développement)
+    if (import.meta.env.DEV && data && contentType === 'application/json') {
+      try {
+        validateApiRequest(endpoint, 'POST', data)
+      } catch (validationError) {
+        console.warn('⚠️ Validation échouée, requête envoyée quand même:', validationError.message)
+      }
+    }
+
     let body = null
     let headers = {}
 
@@ -152,7 +165,18 @@ class HttpService {
     try {
       const response = await fetch(buildApiUrl(endpoint), options)
       const interceptedResponse = await this.interceptResponse(response, endpoint)
-      return await interceptedResponse.json()
+      const jsonResponse = await interceptedResponse.json()
+      
+      // Validation de la réponse (en mode développement)
+      if (import.meta.env.DEV) {
+        try {
+          validateApiResponse(endpoint, jsonResponse)
+        } catch (validationError) {
+          console.warn('⚠️ Réponse non conforme au schéma:', validationError.message)
+        }
+      }
+      
+      return jsonResponse
     } catch (error) {
       if (error instanceof ApiError) throw error
       throw new ApiError(`Erreur réseau: ${error.message}`, 0, null)

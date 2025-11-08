@@ -8,7 +8,7 @@ class NewsService {
     this.cacheTimeout = 5 * 60 * 1000 // 5 minutes
   }
 
-  // Obtenir toutes les actualités avec filtres et pagination
+    // Obtenir toutes les actualités avec filtres
   async getNews(params = {}) {
     try {
       const {
@@ -22,18 +22,18 @@ class NewsService {
         date_from = null,
         date_to = null,
         featured = null,
-        sort_by = 'created_at',
-        sort_order = 'desc'
+        sort_by = null,
+        sort_order = null
       } = params
 
-      const queryParams = {
-        page,
-        limit,
-        sort_by,
-        sort_order
-      }
-
-      // Ajouter les filtres optionnels
+      // Construire les paramètres de façon plus conservative
+      const queryParams = {}
+      
+      // Paramètres de base toujours inclus
+      if (page > 1) queryParams.page = page  // Éviter page=1 par défaut
+      if (limit !== 10) queryParams.limit = limit  // Éviter limit=10 par défaut
+      
+      // Ajouter les filtres seulement s'ils sont spécifiés
       if (status) queryParams.status = status
       if (category) queryParams.category = category
       if (university_id) queryParams.university_id = university_id
@@ -42,12 +42,23 @@ class NewsService {
       if (date_from) queryParams.date_from = date_from
       if (date_to) queryParams.date_to = date_to
       if (featured !== null) queryParams.featured = featured
+      if (sort_by) queryParams.sort_by = sort_by
+      if (sort_order) queryParams.sort_order = sort_order
 
-      const response = await httpService.get(API_ENDPOINTS.NEWS.LIST, queryParams)
+      console.log('📰 Paramètres API news:', queryParams)
+      
+      const response = await httpService.get(API_ENDPOINTS.NEWS.BASE, queryParams)
       return response
     } catch (error) {
       console.error('Erreur lors du chargement des actualités:', error)
-      throw error
+      
+      // Retourner une structure de fallback plutôt que de lever l'exception
+      return {
+        success: false,
+        error: error.message,
+        data: [],
+        message: 'Impossible de charger les actualités depuis l\'API'
+      }
     }
   }
 
@@ -62,7 +73,7 @@ class NewsService {
         return cached.data
       }
 
-      const response = await httpService.get(API_ENDPOINTS.NEWS.GET_BY_ID.replace(':id', id))
+      const response = await httpService.get(API_ENDPOINTS.NEWS.BY_ID(id))
       
       // Mettre en cache
       this.cache.set(cacheKey, {
@@ -82,17 +93,16 @@ class NewsService {
     try {
       const response = await httpService.post(API_ENDPOINTS.NEWS.CREATE, {
         title: newsData.title,
-        content: newsData.content,
         excerpt: newsData.excerpt,
+        content: newsData.content,
+        importance: newsData.importance,
         category: newsData.category,
         tags: newsData.tags || [],
-        featured: newsData.featured || false,
-        image_url: newsData.image_url || null,
-        university_id: newsData.university_id || null,
-        scheduled_at: newsData.scheduled_at || null
+        publish_now: newsData.publish_now || false,
+        scheduled_at: newsData.scheduled_at || new Date().toISOString()
       })
 
-      if (response.status === API_RESPONSE_TYPES.SUCCESS) {
+      if (response.success) {
         // Invalider le cache des listes
         this.invalidateListCache()
         
@@ -112,12 +122,9 @@ class NewsService {
   // Mettre à jour une actualité
   async updateNews(id, updates) {
     try {
-      const response = await httpService.put(
-        API_ENDPOINTS.NEWS.UPDATE.replace(':id', id),
-        updates
-      )
+      const response = await httpService.put(API_ENDPOINTS.NEWS.UPDATE(id), updates)
 
-      if (response.status === API_RESPONSE_TYPES.SUCCESS) {
+      if (response.success) {
         // Invalider le cache
         this.cache.delete(`news_${id}`)
         this.invalidateListCache()
@@ -138,11 +145,9 @@ class NewsService {
   // Supprimer une actualité
   async deleteNews(id) {
     try {
-      const response = await httpService.delete(
-        API_ENDPOINTS.NEWS.DELETE.replace(':id', id)
-      )
+      const response = await httpService.delete(API_ENDPOINTS.NEWS.DELETE(id))
 
-      if (response.status === API_RESPONSE_TYPES.SUCCESS) {
+      if (response.success) {
         // Invalider le cache
         this.cache.delete(`news_${id}`)
         this.invalidateListCache()
@@ -342,6 +347,94 @@ class NewsService {
     }
   }
 
+  // Mettre à jour le statut d'une actualité (pour la modération)
+  async updateNewsStatus(id, statusData) {
+    try {
+      // Utiliser l'endpoint de statut de l'API
+      const response = await httpService.put(API_ENDPOINTS.NEWS.STATUS(id), statusData)
+      
+      if (response.success) {
+        // Invalider le cache
+        this.cache.delete(`news_${id}`)
+        this.invalidateListCache()
+        
+        // Émettre un événement pour notifier la mise à jour
+        window.dispatchEvent(new CustomEvent('news:status_updated', {
+          detail: { newsId: id, status: statusData.status }
+        }))
+      }
+
+      return response
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error)
+      throw error
+    }
+  }
+
+  // Méthodes spécialisées pour la modération
+  async approveArticle(id, comment = '') {
+    return this.updateNewsStatus(id, {
+      status: 'PUBLISHED',
+      comment,
+      moderated_by: 'current_user', // Sera défini côté API
+      moderated_at: new Date().toISOString()
+    })
+  }
+
+  async rejectArticle(id, reason) {
+    return this.updateNewsStatus(id, {
+      status: 'REJECTED',
+      comment: reason,
+      moderated_by: 'current_user', // Sera défini côté API
+      moderated_at: new Date().toISOString()
+    })
+  }
+
+  async requestChanges(id, feedback) {
+    return this.updateNewsStatus(id, {
+      status: 'NEEDS_REVISION',
+      comment: feedback,
+      moderated_by: 'current_user', // Sera défini côté API
+      moderated_at: new Date().toISOString()
+    })
+  }
+
+  async archiveArticle(id, reason = '') {
+    return this.updateNewsStatus(id, {
+      status: 'ARCHIVED',
+      comment: reason,
+      moderated_by: 'current_user', // Sera défini côté API
+      moderated_at: new Date().toISOString()
+    })
+  }
+
+  // Récupérer l'historique des modifications de statut
+  async getStatusHistory(id) {
+    try {
+      const response = await httpService.get(`${API_ENDPOINTS.NEWS.STATUS(id)}history/`)
+      return response
+    } catch (error) {
+      console.error('Erreur lors de la récupération de l\'historique:', error)
+      throw error
+    }
+  }
+
+  // Récupérer les articles par statut pour la modération
+  async getArticlesByStatus(status, filters = {}) {
+    try {
+      const params = {
+        status,
+        ...filters
+      }
+      
+      const response = await httpService.get(API_ENDPOINTS.NEWS.BASE, params)
+      return response
+    } catch (error) {
+      console.error('Erreur lors de la récupération des articles par statut:', error)
+      throw error
+    }
+  }
+
   // Invalider le cache des listes
   invalidateListCache() {
     for (const key of this.cache.keys()) {
@@ -358,6 +451,18 @@ class NewsService {
       if (now - value.timestamp > this.cacheTimeout) {
         this.cache.delete(key)
       }
+    }
+  }
+
+  // Enregistrer qu'un utilisateur a vu une actualité (pour les analytics)
+  async recordNewsView(id) {
+    try {
+      const response = await httpService.post(API_ENDPOINTS.NEWS.VIEW(id))
+      return response
+    } catch (error) {
+      // Ne pas faire échouer l'affichage de l'article si l'enregistrement de vue échoue
+      console.warn('Erreur lors de l\'enregistrement de la vue:', error)
+      return { success: false, error: error.message }
     }
   }
 

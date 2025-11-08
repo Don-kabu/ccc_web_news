@@ -5,116 +5,70 @@ import { API_ENDPOINTS, createApiResponse, API_RESPONSE_TYPES } from './api.conf
 class UserService {
   constructor() {
     this.cache = new Map()
-    this.cacheTimeout = 10 * 60 * 1000 // 10 minutes
+    this.cacheTimeout = 5 * 60 * 1000 // 5 minutes
   }
 
-  // Obtenir la liste des utilisateurs avec filtres et pagination
-  async getUsers(params = {}) {
+  // Récupérer tous les utilisateurs (avec restriction par établissement pour les admins)
+  async getUsers(filters = {}) {
     try {
-      const {
-        page = 1,
-        limit = 20,
-        role = null,
-        university_id = null,
-        search = null,
-        status = null,
-        sort_by = 'created_at',
-        sort_order = 'desc'
-      } = params
+      const cacheKey = this.getCacheKey('users', filters)
+      
+      // Vérifier le cache
+      const cachedData = this.getCachedData(cacheKey)
+      if (cachedData) {
+        return cachedData
+      }
 
       const queryParams = {
-        page,
-        limit,
-        sort_by,
-        sort_order
+        ...filters
       }
 
-      // Ajouter les filtres optionnels
-      if (role) queryParams.role = role
-      if (university_id) queryParams.university_id = university_id
-      if (search) queryParams.search = search
-      if (status) queryParams.status = status
+      const response = await httpService.get(API_ENDPOINTS.USERS.BASE, queryParams)
 
-      const response = await httpService.get(API_ENDPOINTS.USERS.LIST, queryParams)
+      if (response.success) {
+        // Mettre en cache
+        this.setCachedData(cacheKey, response)
+      }
+
       return response
     } catch (error) {
-      console.error('Erreur lors du chargement des utilisateurs:', error)
+      console.error('Erreur lors de la récupération des utilisateurs:', error)
       throw error
     }
   }
 
-  // Obtenir un utilisateur par son ID
-  async getUserById(id) {
+  // Récupérer un utilisateur spécifique
+  async getUser(id) {
     try {
-      // Vérifier le cache
-      const cacheKey = `user_${id}`
-      const cached = this.cache.get(cacheKey)
+      const cacheKey = this.getCacheKey('user', { id })
       
-      if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
-        return cached.data
+      const cachedData = this.getCachedData(cacheKey)
+      if (cachedData) {
+        return cachedData
       }
 
-      const response = await httpService.get(API_ENDPOINTS.USERS.GET_BY_ID.replace(':id', id))
-      
-      // Mettre en cache
-      this.cache.set(cacheKey, {
-        data: response,
-        timestamp: Date.now()
-      })
+      const response = await httpService.get(`${API_ENDPOINTS.USERS.BASE}${id}/`)
 
-      return response
-    } catch (error) {
-      console.error('Erreur lors du chargement de l\'utilisateur:', error)
-      throw error
-    }
-  }
-
-  // Créer un nouvel utilisateur (admin seulement)
-  async createUser(userData) {
-    try {
-      const response = await httpService.post(API_ENDPOINTS.USERS.CREATE, {
-        email: userData.email,
-        firstname: userData.firstname,
-        lastname: userData.lastname,
-        role: userData.role,
-        university_id: userData.university_id,
-        password: userData.password
-      })
-
-      if (response.status === API_RESPONSE_TYPES.SUCCESS) {
-        // Invalider le cache des listes
-        this.invalidateListCache()
-        
-        // Émettre un événement pour notifier la création
-        window.dispatchEvent(new CustomEvent('user:created', {
-          detail: { user: response.data }
-        }))
+      if (response.success) {
+        this.setCachedData(cacheKey, response)
       }
 
       return response
     } catch (error) {
-      console.error('Erreur lors de la création de l\'utilisateur:', error)
+      console.error('Erreur lors de la récupération de l\'utilisateur:', error)
       throw error
     }
   }
 
-  // Mettre à jour un utilisateur
-  async updateUser(id, updates) {
+  // Mettre à jour un utilisateur (admin seulement)
+  async updateUser(id, userData) {
     try {
-      const response = await httpService.put(
-        API_ENDPOINTS.USERS.UPDATE.replace(':id', id),
-        updates
-      )
+      const response = await httpService.put(`${API_ENDPOINTS.USERS.BASE}${id}/`, userData)
 
-      if (response.status === API_RESPONSE_TYPES.SUCCESS) {
+      if (response.success) {
         // Invalider le cache
-        this.cache.delete(`user_${id}`)
-        this.invalidateListCache()
-        
-        // Émettre un événement pour notifier la mise à jour
-        window.dispatchEvent(new CustomEvent('user:updated', {
-          detail: { user: response.data }
-        }))
+        this.invalidateUserCache(id)
+        this.invalidateUsersCache()
       }
 
       return response
@@ -124,22 +78,15 @@ class UserService {
     }
   }
 
-  // Supprimer un utilisateur
+  // Supprimer un utilisateur (admin seulement)
   async deleteUser(id) {
     try {
-      const response = await httpService.delete(
-        API_ENDPOINTS.USERS.DELETE.replace(':id', id)
-      )
+      const response = await httpService.delete(`${API_ENDPOINTS.USERS.BASE}${id}/`)
 
-      if (response.status === API_RESPONSE_TYPES.SUCCESS) {
+      if (response.success) {
         // Invalider le cache
-        this.cache.delete(`user_${id}`)
-        this.invalidateListCache()
-        
-        // Émettre un événement pour notifier la suppression
-        window.dispatchEvent(new CustomEvent('user:deleted', {
-          detail: { userId: id }
-        }))
+        this.invalidateUserCache(id)
+        this.invalidateUsersCache()
       }
 
       return response
@@ -149,61 +96,160 @@ class UserService {
     }
   }
 
-  // Activer/désactiver un utilisateur
-  async toggleUserStatus(id, active = true) {
+  // Récupérer les utilisateurs de l'université de l'admin connecté
+  async getUsersForCurrentAdmin() {
     try {
-      const endpoint = active 
-        ? API_ENDPOINTS.USERS.ACTIVATE.replace(':id', id)
-        : API_ENDPOINTS.USERS.DEACTIVATE.replace(':id', id)
-
-      const response = await httpService.patch(endpoint)
-
-      if (response.status === API_RESPONSE_TYPES.SUCCESS) {
-        // Invalider le cache
-        this.cache.delete(`user_${id}`)
-        this.invalidateListCache()
-        
-        // Émettre un événement pour notifier le changement de statut
-        window.dispatchEvent(new CustomEvent('user:status_changed', {
-          detail: { userId: id, active }
-        }))
+      // Récupérer l'utilisateur actuel
+      const currentUser = JSON.parse(localStorage.getItem('ccc_currentUser') || '{}')
+      
+      console.log('🔍 Admin courant:', {
+        email: currentUser.email,
+        role: currentUser.role,
+        university_id: currentUser.university_id,
+        university_name: currentUser.university?.name,
+        currentUserData: currentUser
+      })
+      
+      if (!currentUser || currentUser.role !== 'ADMIN') {
+        throw new Error('Accès non autorisé - Admin requis')
       }
 
-      return response
+      // Essayer d'abord sans filtrage par université pour voir si l'API fonctionne
+      console.log('🔄 Tentative de récupération de tous les utilisateurs...')
+      
+      try {
+        const allUsersResponse = await this.getUsers()
+        console.log('✅ API Users accessible, réponse:', allUsersResponse)
+        
+        // Si on a un university_id, filtrer côté client
+        if (currentUser.university_id) {
+          console.log('🏫 Filtrage côté client par université ID:', currentUser.university_id)
+          
+          // Gérer différentes structures de réponse
+          let usersList = []
+          if (Array.isArray(allUsersResponse.data)) {
+            usersList = allUsersResponse.data
+          } else if (allUsersResponse.data?.results && Array.isArray(allUsersResponse.data.results)) {
+            usersList = allUsersResponse.data.results
+          } else if (allUsersResponse.data?.users && Array.isArray(allUsersResponse.data.users)) {
+            usersList = allUsersResponse.data.users
+          }
+          
+          console.log('� Utilisateurs totaux:', usersList.length)
+          
+          // Filtrer par université côté client
+          const filteredUsers = usersList.filter(user => {
+            const userUniversityId = user.university_id || user.university?.id
+            const match = userUniversityId === currentUser.university_id
+            
+            if (import.meta.env.DEV) {
+              console.log('👤 User:', user.email, 'University:', userUniversityId, 'Match admin university:', match)
+            }
+            
+            return match
+          })
+          
+          console.log('🎯 Utilisateurs filtrés pour cette université:', filteredUsers.length)
+          
+          // Retourner la même structure avec les utilisateurs filtrés
+          return {
+            ...allUsersResponse,
+            data: Array.isArray(allUsersResponse.data) 
+              ? filteredUsers 
+              : { ...allUsersResponse.data, results: filteredUsers }
+          }
+        } else {
+          // Si pas d'université définie, retourner tous les utilisateurs
+          console.warn('⚠️ Admin sans université définie, retour de tous les utilisateurs')
+          return allUsersResponse
+        }
+        
+      } catch (apiError) {
+        console.error('❌ Erreur API lors de la récupération des utilisateurs:', apiError)
+        throw apiError
+      }
+
     } catch (error) {
-      console.error('Erreur lors du changement de statut de l\'utilisateur:', error)
+      console.error('Erreur lors du chargement des utilisateurs pour l\'admin:', error)
+      
+      // Fallback : essayer de charger depuis localStorage
+      try {
+        console.log('🔄 Fallback vers localStorage...')
+        const savedUsers = localStorage.getItem('ccc_users')
+        if (savedUsers) {
+          const allUsers = JSON.parse(savedUsers)
+          const currentUser = JSON.parse(localStorage.getItem('ccc_currentUser') || '{}')
+          
+          let filteredUsers = allUsers
+          if (currentUser.university_id) {
+            filteredUsers = allUsers.filter(user => 
+              (user.university_id || user.university?.id) === currentUser.university_id
+            )
+          }
+          
+          console.log('🔄 Fallback localStorage - utilisateurs trouvés:', filteredUsers.length)
+          
+          return createApiResponse(API_RESPONSE_TYPES.SUCCESS, filteredUsers, 'Données chargées depuis localStorage')
+        } else {
+          // Créer des données de test si rien n'existe
+          console.log('🧪 Création de données de test...')
+          const testUsers = this.createTestUsers(currentUser.university_id)
+          localStorage.setItem('ccc_users', JSON.stringify(testUsers))
+          
+          return createApiResponse(API_RESPONSE_TYPES.SUCCESS, testUsers, 'Données de test créées')
+        }
+      } catch (fallbackError) {
+        console.error('Erreur fallback localStorage:', fallbackError)
+      }
+      
       throw error
     }
   }
 
-  // Changer le rôle d'un utilisateur
-  async changeUserRole(id, newRole) {
-    try {
-      const response = await httpService.patch(
-        API_ENDPOINTS.USERS.CHANGE_ROLE.replace(':id', id),
-        { role: newRole }
-      )
-
-      if (response.status === API_RESPONSE_TYPES.SUCCESS) {
-        // Invalider le cache
-        this.cache.delete(`user_${id}`)
-        this.invalidateListCache()
-        
-        // Émettre un événement pour notifier le changement de rôle
-        window.dispatchEvent(new CustomEvent('user:role_changed', {
-          detail: { userId: id, newRole }
-        }))
+  // Créer des utilisateurs de test pour une université
+  createTestUsers(universityId = 'univ_test') {
+    const testUsers = [
+      {
+        id: '1',
+        email: 'admin.test@ccc.com',
+        first_name: 'Admin',
+        last_name: 'Test',
+        role: 'ADMIN',
+        university_id: universityId,
+        university: { id: universityId, name: 'CCC Web News University' },
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: '2',
+        email: 'prof.test@ccc.com',
+        first_name: 'Professeur',
+        last_name: 'Test',
+        role: 'PUBLIANT',
+        university_id: universityId,
+        university: { id: universityId, name: 'CCC Web News University' },
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: '3',
+        email: 'etudiant.test@ccc.com',
+        first_name: 'Étudiant',
+        last_name: 'Test',
+        role: 'STUDENT',
+        university_id: universityId,
+        university: { id: universityId, name: 'CCC Web News University' },
+        is_active: true,
+        created_at: new Date().toISOString()
       }
-
-      return response
-    } catch (error) {
-      console.error('Erreur lors du changement de rôle de l\'utilisateur:', error)
-      throw error
-    }
+    ]
+    
+    console.log('🧪 Utilisateurs de test créés:', testUsers.length)
+    return testUsers
   }
 
-  // Obtenir le profil de l'utilisateur connecté
-  async getCurrentUserProfile() {
+  // Obtenir le profil utilisateur connecté
+  async getProfile() {
     try {
       const response = await httpService.get(API_ENDPOINTS.USERS.PROFILE)
       return response
@@ -213,24 +259,10 @@ class UserService {
     }
   }
 
-  // Mettre à jour le profil de l'utilisateur connecté
+  // Mettre à jour le profil utilisateur
   async updateProfile(profileData) {
     try {
-      const response = await httpService.put(API_ENDPOINTS.USERS.UPDATE_PROFILE, {
-        firstname: profileData.firstname,
-        lastname: profileData.lastname,
-        bio: profileData.bio,
-        phone: profileData.phone,
-        avatar_url: profileData.avatar_url
-      })
-
-      if (response.status === API_RESPONSE_TYPES.SUCCESS) {
-        // Émettre un événement pour notifier la mise à jour du profil
-        window.dispatchEvent(new CustomEvent('user:profile_updated', {
-          detail: { profile: response.data }
-        }))
-      }
-
+      const response = await httpService.put(API_ENDPOINTS.USERS.UPDATE_PROFILE, profileData)
       return response
     } catch (error) {
       console.error('Erreur lors de la mise à jour du profil:', error)
@@ -238,175 +270,145 @@ class UserService {
     }
   }
 
-  // Upload d'avatar
-  async uploadAvatar(file, onProgress = null) {
+  // Changer le mot de passe
+  async changePassword(passwordData) {
     try {
-      const response = await httpService.uploadFile(
-        API_ENDPOINTS.MEDIA.UPLOAD_AVATAR,
-        file,
-        onProgress
-      )
+      const response = await httpService.put(API_ENDPOINTS.USERS.CHANGE_PASSWORD, passwordData)
+      return response
+    } catch (error) {
+      console.error('Erreur lors du changement de mot de passe:', error)
+      throw error
+    }
+  }
 
-      if (response.status === API_RESPONSE_TYPES.SUCCESS) {
-        // Émettre un événement pour notifier l'upload d'avatar
-        window.dispatchEvent(new CustomEvent('user:avatar_uploaded', {
-          detail: { avatarUrl: response.data.url }
-        }))
+  // Obtenir les statistiques utilisateur
+  async getUserStatistics(universityId = null) {
+    try {
+      const cacheKey = this.getCacheKey('user_stats', { universityId })
+      
+      const cachedData = this.getCachedData(cacheKey)
+      if (cachedData) {
+        return cachedData
+      }
+
+      const queryParams = universityId ? { university_id: universityId } : {}
+      const response = await httpService.get(API_ENDPOINTS.USERS.STATISTICS, queryParams)
+
+      if (response.success) {
+        this.setCachedData(cacheKey, response)
       }
 
       return response
     } catch (error) {
-      console.error('Erreur lors de l\'upload de l\'avatar:', error)
+      console.error('Erreur lors du chargement des statistiques:', error)
       throw error
     }
   }
 
-  // Obtenir les utilisateurs par université
-  async getUsersByUniversity(universityId, params = {}) {
-    try {
-      const queryParams = {
-        university_id: universityId,
-        ...params
-      }
-
-      const response = await httpService.get(API_ENDPOINTS.USERS.BY_UNIVERSITY, queryParams)
-      return response
-    } catch (error) {
-      console.error('Erreur lors du chargement des utilisateurs par université:', error)
-      throw error
+  // Formater un utilisateur pour l'affichage
+  formatUser(user) {
+    return {
+      id: user.id,
+      first_name: user.first_name || user.firstname || '',
+      last_name: user.last_name || user.lastname || '',
+      email: user.email || '',
+      role: user.role || 'STUDENT',
+      faculty: user.faculty || null,
+      department: user.department || null,
+      university: user.university || null,
+      university_id: user.university_id || user.university?.id || null,
+      created_at: user.created_at || new Date().toISOString(),
+      last_login: user.last_login || null,
+      is_active: user.is_active !== false,
+      profile_image: user.profile_image || null
     }
   }
 
-  // Obtenir les utilisateurs par rôle
-  async getUsersByRole(role, params = {}) {
-    try {
-      const queryParams = {
-        role,
-        ...params
-      }
-
-      const response = await httpService.get(API_ENDPOINTS.USERS.BY_ROLE, queryParams)
-      return response
-    } catch (error) {
-      console.error('Erreur lors du chargement des utilisateurs par rôle:', error)
-      throw error
+  // Valider les permissions de modification
+  canModifyUser(targetUser, currentUser) {
+    // Seuls les admins peuvent modifier
+    if (currentUser.role !== 'ADMIN') {
+      return false
     }
-  }
 
-  // Rechercher des utilisateurs
-  async searchUsers(query, filters = {}) {
-    try {
-      const params = {
-        search: query,
-        ...filters
-      }
-
-      const response = await httpService.get(API_ENDPOINTS.USERS.SEARCH, params)
-      return response
-    } catch (error) {
-      console.error('Erreur lors de la recherche d\'utilisateurs:', error)
-      throw error
-    }
-  }
-
-  // Obtenir les statistiques des utilisateurs
-  async getUserStats(params = {}) {
-    try {
-      const response = await httpService.get(API_ENDPOINTS.USERS.STATS, params)
-      return response
-    } catch (error) {
-      console.error('Erreur lors du chargement des statistiques utilisateurs:', error)
-      throw error
-    }
-  }
-
-  // Obtenir l'historique d'activité d'un utilisateur
-  async getUserActivity(id, params = {}) {
-    try {
-      const response = await httpService.get(
-        API_ENDPOINTS.USERS.ACTIVITY.replace(':id', id),
-        params
-      )
-      return response
-    } catch (error) {
-      console.error('Erreur lors du chargement de l\'activité utilisateur:', error)
-      throw error
-    }
-  }
-
-  // Réinitialiser le mot de passe d'un utilisateur (admin)
-  async resetUserPassword(id) {
-    try {
-      const response = await httpService.post(
-        API_ENDPOINTS.USERS.RESET_PASSWORD.replace(':id', id)
-      )
-
-      if (response.status === API_RESPONSE_TYPES.SUCCESS) {
-        // Émettre un événement pour notifier la réinitialisation
-        window.dispatchEvent(new CustomEvent('user:password_reset', {
-          detail: { userId: id }
-        }))
-      }
-
-      return response
-    } catch (error) {
-      console.error('Erreur lors de la réinitialisation du mot de passe:', error)
-      throw error
-    }
-  }
-
-  // Envoyer une invitation par email
-  async sendInvitation(email, role, universityId) {
-    try {
-      const response = await httpService.post(API_ENDPOINTS.USERS.INVITE, {
-        email,
-        role,
-        university_id: universityId
+    // Les admins ne peuvent modifier que les utilisateurs de leur établissement
+    if (currentUser.university_id !== targetUser.university_id) {
+      console.warn('Tentative de modification d\'utilisateur hors établissement:', {
+        admin_university: currentUser.university_id,
+        target_university: targetUser.university_id
       })
-
-      if (response.status === API_RESPONSE_TYPES.SUCCESS) {
-        // Émettre un événement pour notifier l'invitation
-        window.dispatchEvent(new CustomEvent('user:invited', {
-          detail: { email, role, universityId }
-        }))
-      }
-
-      return response
-    } catch (error) {
-      console.error('Erreur lors de l\'envoi de l\'invitation:', error)
-      throw error
+      return false
     }
+
+    return true
   }
 
-  // Invalider le cache des listes
-  invalidateListCache() {
+  // Vérifier si l'utilisateur peut supprimer un utilisateur
+  canDeleteUser(targetUser, currentUser, allUsers) {
+    if (!this.canModifyUser(targetUser, currentUser)) {
+      return false
+    }
+
+    // Ne pas se supprimer soi-même
+    if (currentUser.id === targetUser.id) {
+      return false
+    }
+
+    // Vérifier qu'il n'y a pas qu'un seul admin dans l'établissement
+    const adminsInUniversity = allUsers.filter(user => 
+      user.role === 'ADMIN' && 
+      user.university_id === currentUser.university_id
+    )
+
+    if (targetUser.role === 'ADMIN' && adminsInUniversity.length === 1) {
+      console.warn('Tentative de suppression du dernier admin de l\'établissement')
+      return false
+    }
+
+    return true
+  }
+
+  // Invalider le cache d'un utilisateur spécifique
+  invalidateUserCache(userId) {
     for (const key of this.cache.keys()) {
-      if (key.startsWith('users_list_')) {
+      if (key.includes(`"id":"${userId}"`)) {
         this.cache.delete(key)
       }
     }
   }
 
-  // Nettoyer le cache expiré
-  cleanExpiredCache() {
-    const now = Date.now()
-    for (const [key, value] of this.cache.entries()) {
-      if (now - value.timestamp > this.cacheTimeout) {
+  // Invalider le cache de la liste des utilisateurs
+  invalidateUsersCache() {
+    for (const key of this.cache.keys()) {
+      if (key.startsWith('users_')) {
         this.cache.delete(key)
       }
     }
   }
 
-  // Vider tout le cache
+  // Cache management
   clearCache() {
     this.cache.clear()
   }
+
+  getCacheKey(method, params = {}) {
+    return `${method}_${JSON.stringify(params)}`
+  }
+
+  getCachedData(key) {
+    const cached = this.cache.get(key)
+    if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
+      return cached.data
+    }
+    return null
+  }
+
+  setCachedData(key, data) {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now()
+    })
+  }
 }
 
-// Instance singleton du service utilisateurs
 export const userService = new UserService()
-
-// Nettoyer le cache périodiquement
-setInterval(() => {
-  userService.cleanExpiredCache()
-}, 60000) // Chaque minute

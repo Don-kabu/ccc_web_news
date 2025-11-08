@@ -1,21 +1,23 @@
 <template>
   <div id="app">
-    <!-- Composant de test API (temporaire) -->
-    <ApiTest />
-    
     <div class="app-container">
       <!-- Vue d'authentification -->
       <div v-if="!isAuthenticated" class="auth-container">
         <div class="auth-wrapper">
           <!-- En-tête avec titre -->
           <div class="auth-header">
-            <div class="logo-section">
-              <img src="/favicon.ico" width="80px" height="80px" alt="logo">
-              <!-- <div class="logo">
-              </div> -->
-              <div class="title-section">
-                <h1>CCC Web News</h1>
-                <p>Plateforme de gestion des actualités universitaires</p>
+            <div class="header-content">
+              <div class="logo-section">
+                <img src="/favicon.ico" width="80px" height="80px" alt="logo">
+                <!-- <div class="logo">
+                </div> -->
+                <div class="title-section">
+                  <h1>CCC Web News</h1>
+                  <p>Plateforme de gestion des actualités universitaires</p>
+                </div>
+              </div>
+              <div class="theme-toggle-wrapper">
+                <ThemeToggle />
               </div>
             </div>
           </div>
@@ -45,7 +47,7 @@
           
           <RegisterForm 
             v-if="currentView === 'register'"
-            @register-success="handleRegisterSuccess"
+            @registration-success="handleRegisterSuccess"
             @switch-to-login="currentView = 'login'"
           />
         </div>
@@ -195,7 +197,7 @@ import AdminPage from './components/pages/AdminPage.vue'
 import UserProfile from './components/pages/UserProfile.vue'
 import NotificationPanel from './components/NotificationPanel.vue'
 import NotificationSettings from './components/pages/NotificationSettings.vue'
-import ApiTest from './components/ApiTest.vue'
+import ThemeToggle from './components/ui/ThemeToggle.vue'
 import { usePermissions } from './composables/usePermissions.js'
 import { PERMISSIONS } from './composables/usePermissions.js'
 import { notificationService } from './services/notificationService.js'
@@ -215,17 +217,17 @@ const unreadNotificationCount = ref(0)
 // Système de permissions - créer une instance réactive
 const { hasPermission } = usePermissions(currentUser)
 
-// Permissions calculées
+// Permissions calculées (utilisent le hasPermission retourné par le composable)
 const canCreateNews = computed(() => {
-  return currentUser.value && hasPermission(PERMISSIONS.CREATE_NEWS)
+  return !!(currentUser.value && hasPermission.value(PERMISSIONS.CREATE_NEWS))
 })
 
 const canModerate = computed(() => {
-  return currentUser.value && hasPermission(PERMISSIONS.MODERATE_NEWS)
+  return !!(currentUser.value && hasPermission.value(PERMISSIONS.MODERATE_NEWS))
 })
 
 const canManageUsers = computed(() => {
-  return currentUser.value && hasPermission(PERMISSIONS.MANAGE_USERS)
+  return !!(currentUser.value && hasPermission.value(PERMISSIONS.MANAGE_USERS))
 })
 
 // État d'authentification
@@ -257,16 +259,21 @@ const handleLoginSuccess = async (user) => {
 }
 
 const handleRegisterSuccess = async ({ user, university }) => {
+  console.log('🎉 Traitement du succès d\'inscription...', { user, university })
   let newUser // Déclarer la variable au niveau de la fonction
   
   try {
     // Créer l'université via l'API
     let universityData = university
     if (!university.id) {
+      console.log('🏫 Création de l\'université via l\'API...', university)
       const universityResponse = await universityService.createUniversity(university)
       if (universityResponse.status === 'success') {
         universityData = universityResponse.data
+        console.log('✅ Université créée:', universityData)
       }
+    } else {
+      console.log('ℹ️ Université déjà existante:', universityData)
     }
 
     // L'inscription devrait déjà avoir été gérée par le service d'authentification
@@ -280,42 +287,30 @@ const handleRegisterSuccess = async ({ user, university }) => {
       last_login: new Date().toISOString()
     }
     
+    console.log('👤 Connexion automatique de l\'utilisateur:', newUser.email)
+    
     // Connecter automatiquement l'utilisateur
     currentUser.value = newUser
     
     // Initialiser le service de notifications
     notificationService.initializeUser(newUser.id)
     updateNotificationCount()
+    
+    console.log('🔄 Redirection vers l\'interface principale...')
+    
+    // La redirection se fait automatiquement via isAuthenticated = computed(() => currentUser.value !== null)
+    // Une fois currentUser défini, isAuthenticated devient true et l'interface principale s'affiche
+    
+    console.log('✅ Utilisateur connecté, interface principale devrait s\'afficher automatiquement')
+    
   } catch (error) {
-    console.error('Erreur lors de l\'inscription:', error)
-    // Fallback vers localStorage si l'API échoue
-    const existingUsers = JSON.parse(localStorage.getItem('ccc_users') || '[]')
-    const existingUniversities = JSON.parse(localStorage.getItem('ccc_universities') || '[]')
-    
-    existingUniversities.push(university)
-    localStorage.setItem('ccc_universities', JSON.stringify(existingUniversities))
-    
-    newUser = {
-      ...user,
-      role: 'ADMIN',
-      university_id: university.id,
-      university: university,
-      is_verified: true,
-      last_login: new Date().toISOString()
-    }
-    
-    existingUsers.push(newUser)
-    localStorage.setItem('ccc_users', JSON.stringify(existingUsers))
-    localStorage.setItem('ccc_currentUser', JSON.stringify(newUser))
-    
-    currentUser.value = newUser
-    notificationService.initializeUser(newUser.id)
-    updateNotificationCount()
+    console.error('❌ Erreur lors de l\'inscription:', error)
+    // Afficher un message d'erreur explicite - pas de fallback localStorage
+    alert('Impossible de se connecter à l\'API. Veuillez vérifier votre connexion internet et réessayer.')
+    return // Arrêter le processus d'inscription
   }
   
   alert(`Bienvenue ${newUser.first_name} ! Vous êtes maintenant administrateur de ${university.name}.`)
-  currentView.value = 'app'
-  activeTab.value = 'accueil'
 }
 
 const handleLogout = async () => {
@@ -438,29 +433,8 @@ onMounted(async () => {
   } catch (error) {
     console.error('Erreur lors de l\'initialisation:', error)
     
-    // Fallback vers localStorage si l'API n'est pas disponible
-    const savedUser = localStorage.getItem('currentUser') || localStorage.getItem('ccc_currentUser')
-    if (savedUser) {
-      try {
-        const user = JSON.parse(savedUser)
-        
-        // Enrichir avec les données de l'université si nécessaire
-        if (!user.university && user.university_id) {
-          const universities = JSON.parse(localStorage.getItem('ccc_universities') || '[]')
-          const university = universities.find(u => u.id === user.university_id)
-          if (university) {
-            user.university = university
-          }
-        }
-        
-        currentUser.value = user
-        currentView.value = 'app'
-        notificationService.initializeUser(user.id)
-        updateNotificationCount()
-      } catch (parseError) {
-        console.error('Erreur lors du parsing des données utilisateur:', parseError)
-      }
-    }
+    // Afficher un message d'erreur si l'API n'est pas disponible
+    alert('Impossible de se connecter à l\'API. Certaines fonctionnalités peuvent ne pas être disponibles.')
   }
   
   // Mettre à jour le compteur de notifications
@@ -521,10 +495,10 @@ body {
 
 #app {
   min-height: 100vh;
-  display: flex;
+  /* display: flex; */
   align-items: center;
   justify-content: center;
-  padding: 1rem;
+  /* padding: 1rem; */
 }
 
 .app-container {
@@ -558,12 +532,23 @@ body {
   margin-bottom: 2rem;
 }
 
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.theme-toggle-wrapper {
+  margin-top: 1rem;
+}
+
 .logo-section {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  margin-bottom: 1rem;
+  flex: 1;
 }
 
 .logo {
@@ -708,9 +693,29 @@ body {
     margin: 1rem;
   }
   
+  .header-content {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .theme-toggle-wrapper {
+    margin-top: 0;
+  }
+  
   .logo-section {
     flex-direction: column;
     gap: 0.5rem;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .theme-toggle-wrapper {
+    margin-top: 0;
   }
   
   .title-section h1 {
