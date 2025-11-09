@@ -1,5 +1,5 @@
 <template>
-  <div class="password-validator">
+  <div class="password-validator" :class="{ 'dark': isDark }">
     <!-- Champ de saisie du mot de passe -->
     <div class="password-input-wrapper">
       <input
@@ -78,6 +78,10 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
 import { passwordValidator } from '../../services/password-validator.service.js'
+import { useTheme } from '../../composables/useTheme.js'
+
+// Composable pour le thème
+const { isDark } = useTheme()
 
 // Props
 const props = defineProps({
@@ -207,6 +211,62 @@ defineExpose({
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  
+  /* Variables CSS pour le mode clair */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #e2e8f0;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --border-primary: #e2e8f0;
+  --border-secondary: #cbd5e1;
+  --shadow-light: rgba(15, 23, 42, 0.08);
+  --shadow-medium: rgba(15, 23, 42, 0.15);
+  
+  /* Couleurs des états */
+  --success-color: #22c55e;
+  --warning-color: #f59e0b;
+  --error-color: #ef4444;
+  --error-bg: rgba(239, 68, 68, 0.05);
+  --error-border: rgba(239, 68, 68, 0.2);
+  --focus-ring: rgba(99, 102, 241, 0.1);
+  --focus-border: #6366f1;
+  
+  /* Couleurs de force du mot de passe */
+  --strength-weak: #ef4444;
+  --strength-fair: #f59e0b;
+  --strength-good: #3b82f6;
+  --strength-strong: #22c55e;
+}
+
+.password-validator.dark {
+  /* Variables CSS pour le mode sombre */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-primary: #334155;
+  --border-secondary: #475569;
+  --shadow-light: rgba(0, 0, 0, 0.3);
+  --shadow-medium: rgba(0, 0, 0, 0.5);
+  
+  /* Couleurs des états pour le mode sombre */
+  --success-color: #16a34a;
+  --warning-color: #d97706;
+  --error-color: #dc2626;
+  --error-bg: rgba(220, 38, 38, 0.1);
+  --error-border: rgba(220, 38, 38, 0.3);
+  --focus-ring: rgba(99, 102, 241, 0.2);
+  --focus-border: #6366f1;
+  
+  /* Couleurs de force du mot de passe pour le mode sombre */
+  --strength-weak: #f87171;
+  --strength-fair: #fbbf24;
+  --strength-good: #60a5fa;
+  --strength-strong: #4ade80;
 }
 
 .password-input-wrapper {
@@ -218,23 +278,27 @@ defineExpose({
 .password-input {
   width: 100%;
   padding: 1rem 3rem 1rem 1rem;
-  border: 2px solid var(--border-color, #e2e8f0);
+  border: 2px solid var(--border-primary);
   border-radius: 0.75rem;
   font-size: 1rem;
-  background: var(--background-secondary, #f8fafc);
-  color: var(--text-primary, #1a202c);
-  transition: all 0.2s ease;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
 }
 
 .password-input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: var(--focus-border);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.password-input::placeholder {
+  color: var(--text-muted);
 }
 
 .password-input.error {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  border-color: var(--error-color);
+  box-shadow: 0 0 0 3px var(--error-bg);
 }
 
 .password-toggle-btn {
@@ -242,15 +306,21 @@ defineExpose({
   right: 1rem;
   background: none;
   border: none;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted);
   cursor: pointer;
   padding: 0.25rem;
   border-radius: 0.25rem;
-  transition: color 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .password-toggle-btn:hover {
-  color: var(--text-primary, #1a202c);
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.password-toggle-btn:focus {
+  outline: 2px solid var(--focus-border);
+  outline-offset: 2px;
 }
 
 .password-strength-container {
@@ -262,9 +332,10 @@ defineExpose({
 .password-strength-bar {
   flex: 1;
   height: 0.25rem;
-  background: var(--background-tertiary, #e2e8f0);
+  background: var(--bg-tertiary);
   border-radius: 0.125rem;
   overflow: hidden;
+  transition: background 0.3s ease;
 }
 
 .password-strength-fill {
@@ -277,20 +348,23 @@ defineExpose({
   font-size: 0.875rem;
   font-weight: 600;
   min-width: max-content;
+  transition: color 0.3s ease;
 }
 
 .password-criteria {
-  background: var(--background-secondary, #f8fafc);
-  border: 1px solid var(--border-color, #e2e8f0);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: 0.5rem;
   padding: 1rem;
+  transition: all 0.3s ease;
 }
 
 .criteria-title {
   font-size: 0.875rem;
   font-weight: 600;
-  color: var(--text-primary, #1a202c);
+  color: var(--text-primary);
   margin: 0 0 0.5rem 0;
+  transition: color 0.3s ease;
 }
 
 .criteria-list {
@@ -306,15 +380,15 @@ defineExpose({
   align-items: center;
   gap: 0.5rem;
   font-size: 0.875rem;
-  transition: color 0.2s ease;
+  transition: color 0.3s ease;
 }
 
 .criterion-item.valid {
-  color: #22c55e;
+  color: var(--success-color);
 }
 
 .criterion-item.invalid {
-  color: #64748b;
+  color: var(--text-secondary);
 }
 
 .criterion-icon {
@@ -322,6 +396,11 @@ defineExpose({
   font-size: 0.75rem;
   width: 1rem;
   text-align: center;
+  transition: color 0.3s ease;
+}
+
+.criterion-text {
+  transition: color 0.3s ease;
 }
 
 .validation-errors {
@@ -334,17 +413,65 @@ defineExpose({
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  color: #ef4444;
+  color: var(--error-color);
   font-size: 0.875rem;
   padding: 0.5rem 0.75rem;
-  background: rgba(239, 68, 68, 0.05);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
   border-radius: 0.375rem;
+  transition: all 0.3s ease;
 }
 
 .error-icon {
   font-size: 0.75rem;
   font-weight: bold;
+}
+
+/* Animation pour les critères qui changent d'état */
+.criterion-item {
+  animation: criterionChange 0.3s ease;
+}
+
+@keyframes criterionChange {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Animation pour la barre de force */
+.password-strength-fill {
+  animation: strengthGrow 0.5s ease;
+}
+
+@keyframes strengthGrow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Animation pour les erreurs */
+.validation-error-item {
+  animation: errorSlideIn 0.3s ease;
+}
+
+@keyframes errorSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @media (max-width: 768px) {
@@ -361,11 +488,35 @@ defineExpose({
   .criteria-list {
     grid-template-columns: 1fr;
   }
+  
+  .password-input {
+    padding: 0.875rem 2.5rem 0.875rem 0.875rem;
+    font-size: 0.9rem;
+  }
+  
+  .password-toggle-btn {
+    right: 0.75rem;
+  }
 }
 
 @media (min-width: 769px) {
   .criteria-list {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* Amélioration de l'accessibilité */
+@media (prefers-reduced-motion: reduce) {
+  .password-validator * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Focus visible pour l'accessibilité */
+.password-input:focus-visible,
+.password-toggle-btn:focus-visible {
+  outline: 2px solid var(--focus-border);
+  outline-offset: 2px;
 }
 </style>

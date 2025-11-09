@@ -65,6 +65,8 @@
           @profile-click="handleProfileClick"
           @settings-click="handleSettingsClick"
           @notifications-click="handleNotificationClick"
+          @notification-click="handleIndividualNotificationClick"
+          @view-all-notifications="handleViewAllNotifications"
         />
 
         <!-- Contenu principal -->
@@ -185,7 +187,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import LoginForm from './components/auth/LoginForm.vue'
 import RegisterForm from './components/auth/RegisterForm.vue'
 import Navbar from './components/layout/Navbar.vue'
@@ -329,6 +331,92 @@ const handleLogout = async () => {
   }
 }
 
+// Gestion de la session expirée
+const handleSessionExpired = (event) => {
+  console.log('🔒 Session expirée détectée:', event.detail)
+  
+  // Nettoyer l'état local
+  currentUser.value = null
+  activeTab.value = 'accueil'
+  showNotifications.value = false
+  showNotificationSettings.value = false
+  currentView.value = 'login'
+  
+  // Afficher une notification à l'utilisateur
+  if (event.detail?.message) {
+    // Créer une notification temporaire
+    showSessionExpiredNotification(event.detail.message)
+  }
+}
+
+// Afficher une notification de session expirée
+const showSessionExpiredNotification = (message) => {
+  // Créer un élément de notification temporaire
+  const notification = document.createElement('div')
+  notification.className = 'session-expired-notification'
+  notification.innerHTML = `
+    <div class="notification-content">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M16 12l-4-4-4 4"></path>
+        <path d="M12 16V8"></path>
+      </svg>
+      <span>${message}</span>
+    </div>
+  `
+  
+  // Ajouter les styles directement
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    padding: 16px 24px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);
+    z-index: 10000;
+    font-weight: 500;
+    backdrop-filter: blur(10px);
+    animation: slideIn 0.3s ease-out;
+  `
+  
+  // Ajouter l'animation CSS
+  const style = document.createElement('style')
+  style.textContent = `
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    .notification-content {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  `
+  document.head.appendChild(style)
+  
+  // Ajouter la notification au DOM
+  document.body.appendChild(notification)
+  
+  // Supprimer après 3 secondes
+  setTimeout(() => {
+    if (notification.parentNode) {
+      notification.style.animation = 'slideIn 0.3s ease-out reverse'
+      setTimeout(() => {
+        notification.remove()
+        style.remove()
+      }, 300)
+    }
+  }, 3000)
+}
+
 // Gestion de la navigation
 const handleTabChange = (tab) => {
   // Vérifier les permissions avant de changer d'onglet
@@ -396,6 +484,70 @@ const handleNotificationClick = () => {
   showNotifications.value = !showNotifications.value
 }
 
+const handleViewAllNotifications = () => {
+  console.log('🔔 Ouverture du panel des notifications (voir toutes)')
+  showNotifications.value = true
+}
+
+const handleIndividualNotificationClick = (notification) => {
+  console.log('🔔 Clic sur notification individuelle:', notification)
+  
+  // Fermer le panel des notifications s'il est ouvert
+  showNotifications.value = false
+  
+  // Navigation basée sur action_url ou type de notification
+  if (notification.action_url) {
+    console.log('🔗 Navigation vers action_url:', notification.action_url)
+    // Si c'est une URL relative qui commence par #, on change l'onglet
+    if (notification.action_url.startsWith('#')) {
+      const tab = notification.action_url.substring(1)
+      handleTabChange(tab)
+    } else {
+      // URL absolue, on navigue normalement
+      window.location.href = notification.action_url
+    }
+  } else {
+    // Redirection par défaut basée sur le type de notification
+    const redirectTab = getNotificationRedirectTab(notification)
+    if (redirectTab) {
+      console.log('🔗 Navigation par défaut vers l\'onglet:', redirectTab)
+      handleTabChange(redirectTab)
+    } else {
+      console.log('ℹ️ Aucune redirection définie pour cette notification')
+    }
+  }
+}
+
+// Obtenir l'onglet de redirection par défaut selon le type de notification
+const getNotificationRedirectTab = (notification) => {
+  const type = notification.type?.toUpperCase()
+  
+  switch (type) {
+    case 'NEWS_PUBLISHED':
+    case 'NEWS_APPROVED':
+    case 'NEWS_REJECTED':
+    case 'NEWS_NEEDS_REVISION':
+    case 'COMMENT_ADDED':
+      // Rediriger vers la page des actualités
+      return 'news'
+    
+    case 'USER_MENTIONED':
+      // Rediriger vers la page de profil ou actualités selon le contexte
+      if (notification.article_id) {
+        return 'news'
+      }
+      return 'profile'
+    
+    case 'SYSTEM_UPDATE':
+      // Rediriger vers la page d'accueil
+      return 'accueil'
+    
+    default:
+      // Par défaut, rediriger vers la page d'accueil
+      return 'accueil'
+  }
+}
+
 const handleNotificationSettings = () => {
   showNotifications.value = false
   showNotificationSettings.value = true
@@ -446,8 +598,18 @@ onMounted(async () => {
   // Écouter les événements de notifications
   window.addEventListener('notification-received', updateNotificationCount)
   
+  // Écouter les événements de session expirée
+  window.addEventListener('auth:session-expired', handleSessionExpired)
+  
   // Mettre à jour le compteur toutes les minutes
   setInterval(updateNotificationCount, 60000)
+})
+
+// Nettoyage lors de la destruction du composant
+onBeforeUnmount(() => {
+  // Supprimer les écouteurs d'événements
+  window.removeEventListener('notification-received', updateNotificationCount)
+  window.removeEventListener('auth:session-expired', handleSessionExpired)
 })
 </script>
 

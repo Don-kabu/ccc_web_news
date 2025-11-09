@@ -171,11 +171,13 @@
           </div>
         </div>
 
-        <!-- Section statistiques -->
+        <!-- Section statistiques avec diagramme -->
         <div class="profile-section">
-          <h2>Statistiques</h2>
-          <div class="stats-grid">
-            <div class="stat-card">
+          <h2>Statistiques d'Activité</h2>
+          
+          <!-- Cartes de statistiques -->
+          <div class="stats-overview">
+            <div class="stat-card primary">
               <div class="stat-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2"/>
@@ -183,12 +185,12 @@
                 </svg>
               </div>
               <div class="stat-content">
-                <h3>Articles publiés</h3>
-                <p class="stat-number">{{ userStats.articlesPublished }}</p>
+                <h3>{{ userStats.articlesPublished }}</h3>
+                <p>Articles Publiés</p>
               </div>
             </div>
             
-            <div class="stat-card">
+            <div class="stat-card secondary">
               <div class="stat-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2"/>
@@ -196,12 +198,25 @@
                 </svg>
               </div>
               <div class="stat-content">
-                <h3>Articles modérés</h3>
-                <p class="stat-number">{{ userStats.articlesModerated }}</p>
+                <h3>{{ userStats.articlesModerated }}</h3>
+                <p>Articles Modérés</p>
               </div>
             </div>
             
-            <div class="stat-card">
+            <div class="stat-card accent">
+              <div class="stat-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="currentColor" stroke-width="2"/>
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                </svg>
+              </div>
+              <div class="stat-content">
+                <h3>{{ userStats.totalViews }}</h3>
+                <p>Vues Totales</p>
+              </div>
+            </div>
+            
+            <div class="stat-card highlight">
               <div class="stat-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
@@ -209,8 +224,52 @@
                 </svg>
               </div>
               <div class="stat-content">
-                <h3>Membre depuis</h3>
-                <p class="stat-number">{{ getMembershipDuration() }}</p>
+                <h3>{{ userStats.membershipDays }}</h3>
+                <p>Jours de Membre</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Graphiques -->
+          <div class="charts-container">
+            <!-- Graphique en barres pour activité -->
+            <div class="chart-wrapper">
+              <h3>Activité de Publication</h3>
+              <canvas ref="activityChart" id="activityChart"></canvas>
+            </div>
+            
+            <!-- Graphique en doughnut pour répartition -->
+            <div class="chart-wrapper">
+              <h3>Répartition d'Activité</h3>
+              <canvas ref="distributionChart" id="distributionChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Indicateurs de performance -->
+          <div class="performance-indicators">
+            <div class="indicator">
+              <div class="indicator-header">
+                <span class="indicator-label">Taux de Modération</span>
+                <span class="indicator-value">{{ getModerationRate() }}%</span>
+              </div>
+              <div class="progress-bar">
+                <div 
+                  class="progress-fill moderation" 
+                  :style="{ width: getModerationRate() + '%' }"
+                ></div>
+              </div>
+            </div>
+            
+            <div class="indicator">
+              <div class="indicator-header">
+                <span class="indicator-label">Activité Quotidienne Moyenne</span>
+                <span class="indicator-value">{{ getDailyActivity() }}</span>
+              </div>
+              <div class="progress-bar">
+                <div 
+                  class="progress-fill activity" 
+                  :style="{ width: Math.min(getDailyActivity() * 20, 100) + '%' }"
+                ></div>
               </div>
             </div>
           </div>
@@ -286,8 +345,30 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import { usePermissions } from '../../composables/usePermissions.js'
+import { userService } from '../../services/user.service.js'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js'
+
+// Enregistrer les composants Chart.js nécessaires
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend
+)
 
 const props = defineProps({
   currentUser: {
@@ -304,6 +385,12 @@ const isSaving = ref(false)
 const showPasswordModal = ref(false)
 const isChangingPassword = ref(false)
 const passwordError = ref('')
+
+// Références pour les graphiques
+const activityChart = ref(null)
+const distributionChart = ref(null)
+let activityChartInstance = null
+let distributionChartInstance = null
 
 // Système de permissions
 const { getRoleLabel, getRoleColor } = usePermissions()
@@ -323,10 +410,12 @@ const passwordForm = reactive({
   confirmPassword: ''
 })
 
-// Statistiques utilisateur
+// Statistiques utilisateur avec nouvelle structure
 const userStats = ref({
   articlesPublished: 0,
-  articlesModerated: 0
+  articlesModerated: 0,
+  totalViews: 0,
+  membershipDays: 0
 })
 
 // Commencer l'édition
@@ -467,22 +556,181 @@ const formatDate = (dateString) => {
   })
 }
 
-// Calculer la durée d'adhésion
-const getMembershipDuration = () => {
-  if (!props.currentUser.createdAt) return 'Non disponible'
-  
-  const createdDate = new Date(props.currentUser.createdAt)
-  const now = new Date()
-  const diffTime = Math.abs(now - createdDate)
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-  
-  if (diffDays < 30) return `${diffDays} jours`
-  if (diffDays < 365) return `${Math.floor(diffDays / 30)} mois`
-  return `${Math.floor(diffDays / 365)} ans`
+// Calculer le taux de modération
+const getModerationRate = () => {
+  const total = userStats.value.articlesPublished + userStats.value.articlesModerated
+  if (total === 0) return 0
+  return Math.round((userStats.value.articlesModerated / total) * 100)
 }
 
-// Charger les statistiques utilisateur
-const loadUserStats = () => {
+// Calculer l'activité quotidienne moyenne
+const getDailyActivity = () => {
+  if (userStats.value.membershipDays === 0) return 0
+  const total = userStats.value.articlesPublished + userStats.value.articlesModerated
+  return Math.round((total / userStats.value.membershipDays) * 10) / 10
+}
+
+// Créer le graphique d'activité (barres)
+const createActivityChart = () => {
+  if (!activityChart.value) return
+  
+  const ctx = activityChart.value.getContext('2d')
+  
+  activityChartInstance = new ChartJS(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Articles Publiés', 'Articles Modérés', 'Vues Totales'],
+      datasets: [{
+        label: 'Activité',
+        data: [
+          userStats.value.articlesPublished,
+          userStats.value.articlesModerated,
+          Math.round(userStats.value.totalViews / 10) // Échelle réduite pour l'affichage
+        ],
+        backgroundColor: [
+          'rgba(102, 126, 234, 0.8)',
+          'rgba(59, 130, 246, 0.8)',
+          'rgba(139, 92, 246, 0.8)'
+        ],
+        borderColor: [
+          'rgba(102, 126, 234, 1)',
+          'rgba(59, 130, 246, 1)',
+          'rgba(139, 92, 246, 1)'
+        ],
+        borderWidth: 2,
+        borderRadius: 8,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: {
+            color: 'rgba(156, 163, 175, 0.2)'
+          },
+          ticks: {
+            color: 'rgba(75, 85, 99, 0.8)'
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          },
+          ticks: {
+            color: 'rgba(75, 85, 99, 0.8)',
+            maxRotation: 45
+          }
+        }
+      }
+    }
+  })
+}
+
+// Créer le graphique de répartition (doughnut)
+const createDistributionChart = () => {
+  if (!distributionChart.value) return
+  
+  const ctx = distributionChart.value.getContext('2d')
+  
+  const total = userStats.value.articlesPublished + userStats.value.articlesModerated
+  
+  distributionChartInstance = new ChartJS(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Articles Publiés', 'Articles Modérés'],
+      datasets: [{
+        data: [userStats.value.articlesPublished, userStats.value.articlesModerated],
+        backgroundColor: [
+          'rgba(102, 126, 234, 0.8)',
+          'rgba(59, 130, 246, 0.8)'
+        ],
+        borderColor: [
+          'rgba(102, 126, 234, 1)',
+          'rgba(59, 130, 246, 1)'
+        ],
+        borderWidth: 3,
+        hoverBorderWidth: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 20,
+            usePointStyle: true,
+            color: 'rgba(75, 85, 99, 0.8)'
+          }
+        }
+      },
+      cutout: '60%'
+    }
+  })
+}
+
+// Détruire les graphiques existants
+const destroyCharts = () => {
+  if (activityChartInstance) {
+    activityChartInstance.destroy()
+    activityChartInstance = null
+  }
+  if (distributionChartInstance) {
+    distributionChartInstance.destroy()
+    distributionChartInstance = null
+  }
+}
+
+// Charger les statistiques utilisateur avec nouvelle structure
+const loadUserStats = async () => {
+  try {
+    console.log('📊 Chargement des statistiques utilisateur...')
+    
+    const response = await userService.getCurrentUserStatistics()
+    
+    if (response.success && response.data) {
+      // Adapter à la nouvelle structure
+      userStats.value.articlesPublished = response.data.articlesPublished || 0
+      userStats.value.articlesModerated = response.data.articlesModerated || 0
+      userStats.value.totalViews = response.data.totalViews || 0
+      userStats.value.membershipDays = response.data.membershipDays || 0
+      
+      console.log('✅ Statistiques chargées:', {
+        published: userStats.value.articlesPublished,
+        moderated: userStats.value.articlesModerated,
+        views: userStats.value.totalViews,
+        membershipDays: userStats.value.membershipDays
+      })
+      
+      // Recréer les graphiques avec les nouvelles données
+      await nextTick()
+      destroyCharts()
+      createActivityChart()
+      createDistributionChart()
+    } else {
+      console.warn('⚠️ Réponse API statistiques invalide:', response)
+      // Fallback vers l'ancienne méthode localStorage
+      loadUserStatsFromLocalStorage()
+    }
+  } catch (error) {
+    console.error('❌ Erreur chargement statistiques API:', error)
+    // Fallback vers localStorage en cas d'erreur
+    loadUserStatsFromLocalStorage()
+  }
+}
+
+// Méthode fallback avec localStorage (ancienne méthode)
+const loadUserStatsFromLocalStorage = () => {
+  console.log('📊 Fallback: Chargement statistiques depuis localStorage')
   const news = JSON.parse(localStorage.getItem('ccc_news') || '[]')
   
   userStats.value.articlesPublished = news.filter(
@@ -492,6 +740,25 @@ const loadUserStats = () => {
   userStats.value.articlesModerated = news.filter(
     article => article.moderator_id === props.currentUser.id
   ).length
+  
+  // Valeurs par défaut pour les nouvelles métriques
+  userStats.value.totalViews = Math.floor(Math.random() * 1000) // Simulation
+  userStats.value.membershipDays = props.currentUser.createdAt 
+    ? Math.floor((new Date() - new Date(props.currentUser.createdAt)) / (1000 * 60 * 60 * 24))
+    : 30
+  
+  console.log('📊 Statistiques localStorage:', {
+    published: userStats.value.articlesPublished,
+    moderated: userStats.value.articlesModerated,
+    views: userStats.value.totalViews,
+    membershipDays: userStats.value.membershipDays
+  })
+  
+  // Créer les graphiques après le chargement
+  nextTick(() => {
+    createActivityChart()
+    createDistributionChart()
+  })
 }
 
 // Notification simple
@@ -501,8 +768,13 @@ const showNotification = (message, type) => {
 }
 
 // Initialisation
-onMounted(() => {
-  loadUserStats()
+onMounted(async () => {
+  await loadUserStats()
+})
+
+// Nettoyage lors de la destruction du composant
+onBeforeUnmount(() => {
+  destroyCharts()
 })
 </script>
 
@@ -739,11 +1011,12 @@ onMounted(() => {
   font-size: 0.875rem;
 }
 
-/* Statistiques */
-.stats-grid {
+/* Statistiques avec diagrammes */
+.stats-overview {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
 .stat-card {
@@ -754,30 +1027,173 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 1rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+  opacity: 0.7;
+}
+
+.stat-card.primary::before {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+}
+
+.stat-card.secondary::before {
+  background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+}
+
+.stat-card.accent::before {
+  background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+}
+
+.stat-card.highlight::before {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .stat-icon {
   width: 48px;
   height: 48px;
-  background: var(--primary-light);
-  color: var(--primary-color);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-card.primary .stat-icon {
+  background: rgba(99, 102, 241, 0.15);
+  color: #6366f1;
+}
+
+.stat-card.secondary .stat-icon {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.stat-card.accent .stat-icon {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+}
+
+.stat-card.highlight .stat-icon {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.stat-content {
+  flex: 1;
 }
 
 .stat-content h3 {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
 }
 
-.stat-number {
-  font-size: 1.5rem;
+.stat-content p {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Conteneur des graphiques */
+.charts-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.chart-wrapper {
+  background: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.chart-wrapper h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.chart-wrapper canvas {
+  width: 100% !important;
+  height: 250px !important;
+}
+
+/* Indicateurs de performance */
+.performance-indicators {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.indicator {
+  background: var(--background-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}
+
+.indicator-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.indicator-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.indicator-value {
+  font-size: 1rem;
   font-weight: 700;
   color: var(--text-primary);
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--border-light);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.8s ease-out;
+}
+
+.progress-fill.moderation {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+}
+
+.progress-fill.activity {
+  background: linear-gradient(90deg, #10b981, #059669);
 }
 
 /* Modal */
@@ -913,6 +1329,11 @@ onMounted(() => {
     grid-template-columns: 1fr;
     gap: 1.5rem;
   }
+  
+  .charts-container {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 }
 
 @media (max-width: 768px) {
@@ -975,8 +1396,21 @@ onMounted(() => {
     font-size: 0.875rem;
   }
   
-  .stats-grid {
+  .stats-overview {
     grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .charts-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .chart-wrapper canvas {
+    height: 200px !important;
+  }
+  
+  .performance-indicators {
     gap: 1rem;
   }
   
@@ -1033,7 +1467,7 @@ onMounted(() => {
     font-size: 0.9rem;
   }
   
-  .stats-grid {
+  .stats-overview {
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }
@@ -1042,8 +1476,20 @@ onMounted(() => {
     padding: 1rem;
   }
   
-  .stat-card h3 {
+  .stat-content h3 {
     font-size: 1.25rem;
+  }
+  
+  .chart-wrapper {
+    padding: 1rem;
+  }
+  
+  .chart-wrapper canvas {
+    height: 180px !important;
+  }
+  
+  .indicator {
+    padding: 1rem;
   }
   
   .security-item {

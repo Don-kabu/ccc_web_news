@@ -360,21 +360,71 @@ class NewsService {
 ```javascript
 class NotificationService {
   async initializeSSE(userId) {
-    const eventSource = new EventSource(
-      `/api/v1/notifications/stream/?user_id=${userId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${this.getAuthToken()}`
+    // ⚠️ EventSource ne supporte pas les headers personnalisés
+    // Utiliser fetch avec ReadableStream à la place
+    const response = await fetch('/api/v1/notifications/stream/', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${this.getAuthToken()}`,
+        'Accept': 'text/event-stream',
+        'Cache-Control': 'no-cache'
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error(`SSE connection failed: ${response.status}`)
+    }
+    
+    // Lire le stream
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    
+    this.readSSEStream(reader, decoder)
+    
+    return reader
+  }
+  
+  async readSSEStream(reader, decoder) {
+    let buffer = ''
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        
+        if (done) break
+        
+        buffer += decoder.decode(value, { stream: true })
+        
+        // Traiter les événements complets
+        let eventEnd = buffer.indexOf('\n\n')
+        while (eventEnd !== -1) {
+          const event = buffer.substring(0, eventEnd)
+          buffer = buffer.substring(eventEnd + 2)
+          
+          this.parseSSEEvent(event)
+          eventEnd = buffer.indexOf('\n\n')
         }
       }
-    )
-
-    eventSource.onmessage = (event) => {
-      const notification = JSON.parse(event.data)
-      this.handleNotification(notification)
+    } catch (error) {
+      console.error('Erreur lecture stream SSE:', error)
     }
-
-    return eventSource
+  }
+  
+  parseSSEEvent(eventText) {
+    if (!eventText.trim()) return
+    
+    const lines = eventText.split('\n')
+    for (const line of lines) {
+      if (line.startsWith('data: ')) {
+        try {
+          const data = line.substring(6)
+          const notification = JSON.parse(data)
+          this.handleNotification(notification)
+        } catch (error) {
+          console.error('Erreur parsing notification SSE:', error)
+        }
+      }
+    }
   }
 
   handleNotification(notification) {

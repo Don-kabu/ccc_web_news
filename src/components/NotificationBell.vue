@@ -121,22 +121,40 @@ const unreadCount = ref(0)
 const isLoading = ref(false)
 const error = ref(null)
 
+// SSE uniquement - plus d'intervalles de rechargement périodique
+// const refreshInterval = ref(null)
+// const statsRefreshInterval = ref(null)
+// const cleanupVisibilityListener = ref(null)
+
 // Charger les notifications au montage
 onMounted(async () => {
+  console.log('🔔 Montage du composant NotificationBell (SSE uniquement)...')
+  
+  // Charger les données initiales
   await loadNotifications()
   await loadUnreadCount()
   
-  // Initialiser les notifications temps réel
+  console.log('🔔 Notifications initiales:', {
+    total: notifications.value.length,
+    unread: unreadCount.value,
+    list: notifications.value.map(n => ({ id: n.id, title: n.title, read: n.is_read }))
+  })
+  
+  // Initialiser les notifications SSE (temps réel uniquement)
   initializeRealTime()
   
   // Écouter les clics externes
   document.addEventListener('click', handleClickOutside)
+  
+  console.log('✅ NotificationBell SSE initialisé')
 })
 
 onUnmounted(() => {
-  // Nettoyer les événements et connexions
+  // Nettoyer les événements et connexions SSE
   document.removeEventListener('click', handleClickOutside)
   notificationService.disconnectRealTime()
+  
+  console.log('🧹 NotificationBell démonté (SSE fermé)')
 })
 
 const loadNotifications = async () => {
@@ -153,7 +171,7 @@ const loadNotifications = async () => {
     
     console.log('🔔 Response notifications (type:', typeof response, '):', response)
     
-    if (response.success || response.data || Array.isArray(response)) {
+    if (response.success || response.results || Array.isArray(response)) {
       // Gérer différentes structures de réponse API
       let notificationsList = []
       
@@ -161,7 +179,13 @@ const loadNotifications = async () => {
       if (Array.isArray(response)) {
         notificationsList = response
       }
-      // Si response.data existe
+      // Si response.results existe (structure principale pour notifications)
+      else if (response.results) {
+        if (Array.isArray(response.results)) {
+          notificationsList = response.results
+        }
+      }
+      // Si response.data existe (fallback)
       else if (response.data) {
         if (Array.isArray(response.data)) {
           // Si data est directement un array
@@ -178,9 +202,7 @@ const loadNotifications = async () => {
         }
       }
       // Fallback: chercher dans les autres propriétés possibles
-      else if (response.results && Array.isArray(response.results)) {
-        notificationsList = response.results
-      } else if (response.notifications && Array.isArray(response.notifications)) {
+      else if (response.notifications && Array.isArray(response.notifications)) {
         notificationsList = response.notifications
       }
       
@@ -226,8 +248,12 @@ const loadNotifications = async () => {
       const savedNotifications = localStorage.getItem('ccc_notifications')
       if (savedNotifications) {
         const parsed = JSON.parse(savedNotifications)
-        notifications.value = Array.isArray(parsed) ? parsed : []
-        console.log('🔔 Notifications chargées depuis localStorage (fallback):', notifications.value.length)
+        const validNotifications = Array.isArray(parsed) ? parsed.slice(0, 10) : []
+        
+        if (validNotifications.length > 0) {
+          notifications.value = validNotifications
+          console.log('🔔 Notifications chargées depuis localStorage (fallback):', notifications.value.length)
+        }
       } else {
         notifications.value = []
       }
@@ -248,56 +274,118 @@ const loadUnreadCount = async () => {
   }
 }
 
-const initializeRealTime = () => {
-  // S'abonner aux événements de notifications
+// SSE uniquement - pas de rechargement automatique par intervalles
+const initializeSSEOnly = () => {
+  console.log('� Initialisation SSE uniquement (sans polling ni intervalles)')
+  
+  // S'abonner aux événements SSE depuis le service
   const unsubscribe = notificationService.subscribe((event, data) => {
+    console.log('🔔 NotificationBell - Événement reçu:', event, data)
+    console.log('🔔 NotificationBell - État actuel:', {
+      notificationsCount: notifications.value.length,
+      unreadCount: unreadCount.value,
+      subscribers: notificationService.subscribers ? notificationService.subscribers.size : 'unknown'
+    })
+    
     switch (event) {
       case 'new':
-        // Nouvelle notification
-        const formattedNotification = notificationService.formatNotification(data)
-        notifications.value.unshift(formattedNotification)
-        unreadCount.value++
-        
-        // Afficher une notification native si l'utilisateur a donné permission
-        if (Notification.permission === 'granted') {
-          new Notification(data.title, {
-            body: data.message,
-            icon: '/favicon.ico'
-          })
+        // Nouvelle notification via SSE
+        try {
+          const formattedNotification = notificationService.formatNotification(data)
+          console.log('🔔 Nouvelle notification SSE formatée:', formattedNotification)
+          
+          // Ajouter au début de la liste
+          notifications.value.unshift(formattedNotification)
+          
+          // Limiter à 10 notifications visibles
+          if (notifications.value.length > 10) {
+            notifications.value = notifications.value.slice(0, 10)
+          }
+          
+          // Incrémenter le compteur non lu
+          unreadCount.value++
+          
+          // Forcer la réactivité de Vue
+          notifications.value = [...notifications.value]
+          
+          console.log('🔔 Notification SSE ajoutée - Total:', notifications.value.length, 'Non lues:', unreadCount.value)
+          
+          // Afficher une notification native
+          if (Notification.permission === 'granted' && data.title) {
+            try {
+              new Notification(data.title, {
+                body: data.message || '',
+                icon: '/favicon.ico',
+                tag: `notification_${data.id}`
+              })
+            } catch (notifError) {
+              console.warn('⚠️ Erreur notification native:', notifError)
+            }
+          }
+        } catch (formatError) {
+          console.error('❌ Erreur formatage notification SSE:', formatError, data)
         }
         break
         
       case 'read':
-        // Notification marquée comme lue
+        // Notification marquée comme lue via SSE
         const notification = notifications.value.find(n => n.id === data.notificationId)
         if (notification) {
           notification.is_read = true
           unreadCount.value = Math.max(0, unreadCount.value - 1)
+          
+          // Forcer la réactivité
+          notifications.value = [...notifications.value]
+          console.log('🔔 Notification SSE marquée comme lue - Non lues:', unreadCount.value)
         }
         break
         
       case 'all_read':
-        // Toutes les notifications marquées comme lues
+        // Toutes les notifications marquées comme lues via SSE
         notifications.value.forEach(n => n.is_read = true)
         unreadCount.value = 0
+        
+        // Forcer la réactivité
+        notifications.value = [...notifications.value]
+        console.log('🔔 Toutes les notifications SSE marquées comme lues')
+        break
+        
+      case 'count_update':
+        // Mise à jour du count depuis SSE
+        if (data && typeof data.count === 'number') {
+          unreadCount.value = data.count
+          console.log('🔢 Count SSE mis à jour:', data.count)
+        }
         break
     }
   })
   
-  // Initialiser la connexion temps réel
+  // Initialiser la connexion SSE
   notificationService.initializeRealTimeNotifications()
   
   // Demander permission pour les notifications natives
   if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission()
+    Notification.requestPermission().then(permission => {
+      console.log('🔔 Permission notifications:', permission)
+    })
   }
   
   // Nettoyer lors de la destruction du composant
   onUnmounted(unsubscribe)
+  
+  console.log('✅ Notifications SSE uniquement initialisées')
+}
+
+const initializeRealTime = () => {
+  console.log('🔔 Redirection vers initializeSSEOnly...')
+  initializeSSEOnly()
 }
 
 const toggleDropdown = () => {
   showDropdown.value = !showDropdown.value
+  console.log('🔔 Dropdown togglé:', showDropdown.value ? 'ouvert' : 'fermé')
+  
+  // Plus de rechargement manuel - SSE gère tout en temps réel
 }
 
 const closeDropdown = () => {
@@ -311,31 +399,30 @@ const handleClickOutside = (event) => {
 }
 
 const handleNotificationClick = async (notification) => {
+  console.log('🔔 Clic sur notification:', notification)
+  
   // Marquer comme lue si pas encore lu
   if (!notification.is_read) {
     try {
       await notificationService.markAsRead(notification.id)
+      console.log('✅ Notification marquée comme lue')
     } catch (err) {
       console.error('Erreur lors du marquage comme lu:', err)
     }
   }
   
-  // Émettre l'événement de clic
+  // Émettre l'événement de clic vers le parent (App.vue via Navbar)
   emit('notificationClick', notification)
   
   // Fermer le dropdown
   closeDropdown()
-  
-  // Naviguer vers l'action si définie
-  if (notification.action_url) {
-    window.location.href = notification.action_url
-  }
 }
 
 const markAllAsRead = async () => {
   try {
     isLoading.value = true
     await notificationService.markAllAsRead()
+    console.log('✅ Toutes les notifications marquées comme lues (SSE mettra à jour automatiquement)')
   } catch (err) {
     console.error('Erreur lors du marquage de toutes comme lues:', err)
     alert('Erreur lors du marquage comme lues')

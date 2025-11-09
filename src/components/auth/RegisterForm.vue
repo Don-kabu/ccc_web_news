@@ -1,9 +1,9 @@
 <template>
-  <div class="register-container">
+  <div class="register-container" :class="{ 'dark': isDark }">
     <!-- Étape 1: Vérification email avec OTP -->
     <EmailVerification
       v-if="currentStep === 1"
-      @verification-success="handleEmailVerified"
+      @email-verified="handleEmailVerified"
       @back="handleBackToLogin"
       :verification-type="'university-creation'"
       class="email-verification-step"
@@ -279,6 +279,10 @@ import { ref, reactive, computed, watch } from 'vue'
 import EmailVerification from '../common/EmailVerification.vue'
 import PasswordValidator from '../common/PasswordValidator.vue'
 import { authService } from '@/services/auth.service.js'
+import { useTheme } from '@/composables/useTheme.js'
+
+// Composables
+const { isDark } = useTheme()
 
 // Props et émissions
 const emit = defineEmits(['registration-success', 'switch-to-login'])
@@ -478,6 +482,103 @@ const proceedToLogin = () => {
   max-width: 800px;
   margin: 0 auto;
   padding: 2rem;
+  transition: all 0.3s ease;
+  
+  /* Variables CSS pour le mode clair */
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --background-primary: #ffffff;
+  --background-secondary: #f9fafb;
+  --background-tertiary: #f3f4f6;
+  --border-color: #e5e7eb;
+  --border-light: #f3f4f6;
+  --border-hover: #d1d5db;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  
+  /* Couleurs spécifiques */
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --input-focus-border: #6366f1;
+  --input-focus-shadow: rgba(99, 102, 241, 0.1);
+  --fieldset-bg: #ffffff;
+  --fieldset-border: #f3f4f6;
+  --verified-bg: rgba(16, 185, 129, 0.1);
+  --verified-border: #10b981;
+  --error-bg: rgba(239, 68, 68, 0.1);
+  --error-border: rgba(239, 68, 68, 0.2);
+  --error-text: #ef4444;
+  --success-bg: rgba(16, 185, 129, 0.1);
+  --success-border: rgba(16, 185, 129, 0.2);
+  --success-text: #10b981;
+  --success-icon: #10b981;
+  
+  /* Couleurs des boutons */
+  --btn-primary-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+  --btn-primary-shadow: rgba(99, 102, 241, 0.3);
+  --btn-primary-hover-shadow: rgba(99, 102, 241, 0.4);
+  --btn-secondary-bg: #ffffff;
+  --btn-secondary-border: #e5e7eb;
+  --btn-secondary-hover-bg: #f3f4f6;
+  --btn-secondary-hover-border: #d1d5db;
+  
+  /* Badge email vérifié */
+  --verified-badge-bg: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --verified-badge-shadow: rgba(16, 185, 129, 0.3);
+}
+
+.register-container.dark {
+  /* Variables CSS pour le mode sombre */
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --background-primary: #0f172a;
+  --background-secondary: #1e293b;
+  --background-tertiary: #334155;
+  --border-color: #334155;
+  --border-light: #475569;
+  --border-hover: #64748b;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
+  
+  /* Couleurs spécifiques pour le mode sombre */
+  --input-bg: #1e293b;
+  --input-border: #475569;
+  --input-focus-border: #6366f1;
+  --input-focus-shadow: rgba(99, 102, 241, 0.2);
+  --fieldset-bg: #1e293b;
+  --fieldset-border: #475569;
+  --verified-bg: rgba(16, 185, 129, 0.15);
+  --verified-border: #22c55e;
+  --error-bg: rgba(239, 68, 68, 0.15);
+  --error-border: rgba(239, 68, 68, 0.3);
+  --error-text: #f87171;
+  --success-bg: rgba(16, 185, 129, 0.15);
+  --success-border: rgba(16, 185, 129, 0.3);
+  --success-text: #4ade80;
+  --success-icon: #22c55e;
+  
+  /* Couleurs des boutons pour le mode sombre */
+  --btn-primary-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+  --btn-primary-shadow: rgba(99, 102, 241, 0.4);
+  --btn-primary-hover-shadow: rgba(99, 102, 241, 0.5);
+  --btn-secondary-bg: #1e293b;
+  --btn-secondary-border: #334155;
+  --btn-secondary-hover-bg: #334155;
+  --btn-secondary-hover-border: #475569;
+  
+  /* Badge email vérifié pour le mode sombre */
+  --verified-badge-bg: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  --verified-badge-shadow: rgba(34, 197, 94, 0.4);
 }
 
 .email-verification-step {
@@ -489,11 +590,14 @@ const proceedToLogin = () => {
   border-radius: var(--radius-xl);
   padding: 2rem;
   box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
 }
 
 .form-header {
   text-align: center;
   margin-bottom: 2rem;
+  animation: slideInDown 0.6s ease;
 }
 
 .form-header h2 {
@@ -501,25 +605,67 @@ const proceedToLogin = () => {
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 0.5rem;
+  transition: color 0.3s ease;
 }
 
 .form-header p {
   color: var(--text-secondary);
   font-size: 1rem;
   margin-bottom: 1rem;
+  transition: color 0.3s ease;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .verified-email-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: var(--verified-badge-bg);
   color: white;
   padding: 0.5rem 1rem;
   border-radius: var(--radius-lg);
   font-size: 0.875rem;
   font-weight: 600;
-  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 15px var(--verified-badge-shadow);
+  animation: fadeInScale 0.5s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.verified-email-badge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: left 0.3s ease;
+}
+
+.verified-email-badge:hover::before {
+  left: 100%;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .register-form {
@@ -529,10 +675,28 @@ const proceedToLogin = () => {
 }
 
 .form-section {
-  border: 2px solid var(--border-light);
+  border: 2px solid var(--fieldset-border);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
-  background: var(--background-primary);
+  background: var(--fieldset-bg);
+  transition: all 0.3s ease;
+  animation: slideInUp 0.4s ease;
+}
+
+.form-section:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .form-section legend {
@@ -540,7 +704,25 @@ const proceedToLogin = () => {
   color: var(--text-primary);
   font-size: 1.125rem;
   padding: 0 1rem;
-  background: var(--background-primary);
+  background: var(--fieldset-bg);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.form-section legend::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--btn-primary-bg);
+  transform: scaleX(0);
+  transition: transform 0.3s ease;
+}
+
+.form-section:hover legend::before {
+  transform: scaleX(1);
 }
 
 .form-group {
@@ -548,6 +730,16 @@ const proceedToLogin = () => {
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 1.25rem;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .form-row {
@@ -560,23 +752,29 @@ const proceedToLogin = () => {
   font-weight: 600;
   color: var(--text-primary);
   font-size: 0.875rem;
+  transition: color 0.3s ease;
 }
 
 .form-input, .form-textarea {
   width: 100%;
   padding: 1rem;
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--input-border);
   border-radius: var(--radius-lg);
   font-size: 1rem;
-  background: var(--background-secondary);
+  background: var(--input-bg);
   color: var(--text-primary);
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .form-input:focus, .form-textarea:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: var(--input-focus-border);
+  box-shadow: 0 0 0 3px var(--input-focus-shadow);
+  transform: translateY(-2px);
+}
+
+.form-input:hover, .form-textarea:hover {
+  border-color: var(--text-muted);
 }
 
 .form-input::placeholder, .form-textarea::placeholder {
@@ -584,40 +782,63 @@ const proceedToLogin = () => {
 }
 
 .verified-field {
-  background: rgba(16, 185, 129, 0.1) !important;
-  border-color: #10b981 !important;
+  background: var(--verified-bg) !important;
+  border-color: var(--verified-border) !important;
   color: var(--text-primary) !important;
+  position: relative;
+}
+
+.verified-field::after {
+  content: '✓';
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--verified-border);
+  font-weight: bold;
+  font-size: 1.2rem;
 }
 
 .help-text {
   font-size: 0.75rem;
   color: var(--text-muted);
   margin-top: 0.25rem;
+  transition: color 0.3s ease;
 }
 
 .form-textarea {
   resize: vertical;
   min-height: 80px;
+  font-family: inherit;
 }
 
 .error-message {
   padding: 1rem;
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  background: var(--error-bg);
+  color: var(--error-text);
   border-radius: var(--radius-md);
   font-size: 0.875rem;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid var(--error-border);
   margin-bottom: 1rem;
+  animation: slideInDown 0.3s ease;
+  position: relative;
+}
+
+.error-message::before {
+  content: '⚠';
+  margin-right: 0.5rem;
+  font-size: 1rem;
 }
 
 .field-error {
-  color: #ef4444;
+  color: var(--error-text);
   font-size: 0.75rem;
   margin-top: 0.25rem;
   padding-left: 0.25rem;
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  animation: slideInDown 0.2s ease;
 }
 
 .field-error::before {
@@ -626,8 +847,15 @@ const proceedToLogin = () => {
 }
 
 .form-input.error, .form-textarea.error {
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+  border-color: var(--error-text) !important;
+  box-shadow: 0 0 0 3px var(--error-border) !important;
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }
 
 .form-actions {
@@ -635,6 +863,7 @@ const proceedToLogin = () => {
   gap: 1rem;
   justify-content: space-between;
   margin-top: 2rem;
+  animation: slideInUp 0.4s ease;
 }
 
 .primary-button, .secondary-button {
@@ -650,18 +879,40 @@ const proceedToLogin = () => {
   min-height: 3rem;
   border: none;
   font-size: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.primary-button::before, .secondary-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  transition: left 0.3s ease;
+}
+
+.primary-button:hover:not(:disabled)::before,
+.secondary-button:hover::before {
+  left: 100%;
 }
 
 .primary-button {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+  background: var(--btn-primary-bg);
   color: white;
   flex: 1;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 15px var(--btn-primary-shadow);
 }
 
 .primary-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 8px 25px var(--btn-primary-hover-shadow);
+}
+
+.primary-button:active {
+  transform: translateY(0);
 }
 
 .primary-button:disabled {
@@ -671,14 +922,15 @@ const proceedToLogin = () => {
 }
 
 .secondary-button {
-  background: var(--background-primary);
+  background: var(--btn-secondary-bg);
   color: var(--text-primary);
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--btn-secondary-border);
 }
 
 .secondary-button:hover {
-  background: var(--border-light);
-  border-color: var(--border-hover);
+  background: var(--btn-secondary-hover-bg);
+  border-color: var(--btn-secondary-hover-border);
+  transform: translateY(-1px);
 }
 
 .loading-spinner {
@@ -703,6 +955,19 @@ const proceedToLogin = () => {
   padding: 3rem;
   box-shadow: var(--shadow-lg);
   text-align: center;
+  border: 1px solid var(--border-color);
+  animation: scaleIn 0.5s ease;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .success-content {
@@ -711,8 +976,27 @@ const proceedToLogin = () => {
 }
 
 .success-icon {
-  color: #10b981;
+  color: var(--success-icon);
   margin-bottom: 1.5rem;
+  animation: bounceIn 0.6s ease;
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .success-content h2 {
@@ -720,6 +1004,7 @@ const proceedToLogin = () => {
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 1rem;
+  transition: color 0.3s ease;
 }
 
 .success-content p {
@@ -727,6 +1012,7 @@ const proceedToLogin = () => {
   font-size: 1.125rem;
   margin-bottom: 2rem;
   line-height: 1.6;
+  transition: color 0.3s ease;
 }
 
 .success-details {
@@ -735,6 +1021,12 @@ const proceedToLogin = () => {
   padding: 1.5rem;
   margin-bottom: 2rem;
   text-align: left;
+  border: 1px solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.success-details:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .detail-item {
@@ -744,10 +1036,16 @@ const proceedToLogin = () => {
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--border-light);
   color: var(--text-secondary);
+  transition: all 0.3s ease;
 }
 
 .detail-item:last-child {
   border-bottom: none;
+}
+
+.detail-item:hover {
+  color: var(--text-primary);
+  padding-left: 0.5rem;
 }
 
 .detail-item strong {
@@ -755,7 +1053,7 @@ const proceedToLogin = () => {
   font-weight: 600;
 }
 
-/* Responsive */
+/* Responsive Design */
 @media (max-width: 768px) {
   .register-container {
     padding: 1rem;
@@ -811,5 +1109,86 @@ const proceedToLogin = () => {
   .success-container {
     padding: 1.5rem;
   }
+  
+  .form-input, .form-textarea {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  .primary-button, .secondary-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Amélioration de l'accessibilité */
+@media (prefers-reduced-motion: reduce) {
+  .register-container *,
+  .register-container *::before,
+  .register-container *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible pour l'accessibilité */
+.form-input:focus-visible,
+.form-textarea:focus-visible,
+.primary-button:focus-visible,
+.secondary-button:focus-visible {
+  outline: 2px solid var(--input-focus-border);
+  outline-offset: 2px;
+}
+
+/* États spéciaux pour les sélecteurs */
+select.form-input {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+select.form-input option {
+  background: var(--background-primary);
+  color: var(--text-primary);
+}
+
+/* Animation pour les boutons en cours de chargement */
+.primary-button.loading {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Style pour les champs requis */
+.form-label::after {
+  content: ' *';
+  color: var(--error-text);
+  font-weight: bold;
+}
+
+.form-label:not([for*="website"]):not([for*="description"]):not([for*="admin_email"])::after {
+  content: ' *';
+  color: var(--error-text);
+  font-weight: bold;
+}
+
+/* États de hover améliorés */
+.form-input:hover, .form-textarea:hover {
+  border-color: var(--text-muted);
+}
+
+.form-section:hover {
+  transform: translateY(-2px);
 }
 </style>

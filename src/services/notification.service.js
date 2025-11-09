@@ -1,17 +1,18 @@
 import { httpService } from './http.service.js'
-import { API_ENDPOINTS, createApiResponse, API_RESPONSE_TYPES } from './api.config.js'
+import { API_ENDPOINTS, createApiResponse, API_RESPONSE_TYPES, buildApiUrl } from './api.config.js'
 
 class NotificationService {
   constructor() {
     this.cache = new Map()
     this.cacheTimeout = 2 * 60 * 1000 // 2 minutes
-    this.eventSource = null
     this.subscribers = new Set()
+    this.reconnectionTimeout = null
     
-    // Variables pour le polling fallback
+    // Variables pour le polling (remplace SSE)
     this.pollingInterval = null
     this.lastUnreadCount = 0
     this.lastNotificationTimestamp = null
+    this.lastNotificationIds = new Set()
   }
 
   // Récupérer toutes les notifications
@@ -32,8 +33,8 @@ class NotificationService {
       }
 
       const response = await httpService.get(API_ENDPOINTS.NOTIFICATIONS.BASE, queryParams)
-
-      if (response.success || response.data || Array.isArray(response)) {
+      console.log('🔔 getNotifications() response:', response.results)
+      if (response.success || response.results || Array.isArray(response)) {
         // Mettre en cache seulement si on a des données valides
         this.cache.set(cacheKey, {
           data: response,
@@ -170,14 +171,14 @@ class NotificationService {
   async getUnreadCount() {
     try {
       const response = await this.getStatistics()
-      return response.success ? response.data?.unread_count || 0 : 0
+      return response.success ? response.results?.unread_count || 0 : 0
     } catch (error) {
       console.error('Erreur lors de la récupération du nombre non lu:', error)
       return 0
     }
   }
 
-  // Initialiser les notifications en temps réel (Polling fallback)
+  // Initialiser les notifications en temps réel (Polling sur /notifications/)
   initializeRealTimeNotifications() {
     // Fermer toute connexion SSE existante
     if (this.eventSource) {
@@ -193,166 +194,394 @@ class NotificationService {
 
     const token = localStorage.getItem('ccc_access_token')
     if (!token) {
-      console.warn('Aucun token d\'authentification pour les notifications en temps réel')
+      console.warn('❌ Aucun token d\'authentification pour les notifications')
       return
     }
 
-    // Tentative de SSE avec gestion d'erreurs améliorée
-    this.trySSEConnection()
+    // Utiliser polling sur /notifications/ au lieu de SSE
+    console.log('🔄 Initialisation polling sur /api/v1/notifications/ (pas de SSE disponible)')
+    this.startPolling()
   }
 
-  // Tenter une connexion SSE avec fallback vers polling
-  async trySSEConnection() {
+  // Démarrer le polling sur /notifications/
+  async startPolling() {
     try {
-      console.log('🔄 Tentative de connexion SSE...')
+      console.log('📡 Démarrage polling notifications...')
       
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://univers-news-ccc-kabu.onrender.com/api/v1'
-      const token = localStorage.getItem('ccc_access_token')
+      // Variables pour le polling
+      this.lastUnreadCount = 0
+      this.lastNotificationTimestamp = null
+      this.lastNotificationIds = new Set()
       
-      if (!token) {
-        console.warn('⚠️ Pas de token disponible pour SSE, basculement vers polling')
-        this.fallbackToPolling()
-        return
-      }
+      // Récupérer l'état initial
+      await this.loadInitialNotificationState()
       
-      // Essayer différents endpoints SSE possibles
-      const sseEndpoints = [
-        '/notifications/stream/',
-        '/notifications/sse/', 
-        '/notifications/live/',
-        '/sse/notifications/'
-      ]
+      // Polling toutes les 15 secondes sur /notifications/
+      this.pollingInterval = setInterval(async () => {
+        try {
+          await this.checkForNewNotifications()
+        } catch (error) {
+          console.error('❌ Erreur polling notifications:', error)
+        }
+      }, 15000) // 15 secondes
       
-      // Méthode 1: Fetch avec ReadableStream (support des headers)
-      await this.tryFetchSSE(baseUrl, sseEndpoints[0], token)
+      console.log('✅ Polling notifications démarré (15s)')
       
     } catch (error) {
-      console.error('❌ Erreur SSE:', error)
-      this.fallbackToPolling()
+      console.error('❌ Erreur initialisation polling:', error)
+      
+      // Retry après 30 secondes
+      setTimeout(() => {
+        console.log('🔄 Retry initialisation polling...')
+        this.startPolling()
+      }, 30000)
     }
   }
 
-  // Nouvelle méthode utilisant fetch pour supporter les headers
-  async tryFetchSSE(baseUrl, endpoint, token) {
+  // Charger l'état initial des notifications
+  async loadInitialNotificationState() {
     try {
-      const sseUrl = `${baseUrl}${endpoint}`
+      console.log('📊 Chargement état initial notifications...')
       
-      console.log('🔗 Connexion SSE avec headers vers:', sseUrl)
+      // Charger les stats pour le count initial
+      const stats = await this.getStatistics()
+      if (stats.success && stats.data?.unread_count) {
+        this.lastUnreadCount = stats.data.unread_count
+        console.log('📈 Count initial:', this.lastUnreadCount)
+      }
       
-      const response = await fetch(sseUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'text/event-stream',
-          'Cache-Control': 'no-cache'
-        }
+      // Charger les notifications récentes pour éviter les doublons
+      const notifications = await this.getNotifications({ 
+        limit: 10,
+        ordering: '-created_at' 
       })
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-      
-      if (!response.body) {
-        throw new Error('ReadableStream non supporté')
-      }
-      
-      console.log('✅ Connexion SSE établie avec headers')
-      
-      // Lire le stream
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-      
-      // Timeout de sécurité
-      const sseTimeout = setTimeout(() => {
-        console.log('⚠️ SSE fetch timeout - Basculement vers le polling')
-        reader.cancel()
-        this.fallbackToPolling()
-      }, 5000)
-      
-      // Fonction pour traiter les données reçues
-      const processStream = async () => {
-        try {
-          while (true) {
-            const { done, value } = await reader.read()
-            
-            if (done) {
-              console.log('� Stream SSE fermé')
-              break
-            }
-            
-            clearTimeout(sseTimeout) // Connection réussie
-            
-            // Décoder et traiter les chunks
-            buffer += decoder.decode(value, { stream: true })
-            
-            // Traiter les événements complets
-            let eventEnd = buffer.indexOf('\n\n')
-            while (eventEnd !== -1) {
-              const event = buffer.substring(0, eventEnd)
-              buffer = buffer.substring(eventEnd + 2)
-              
-              // Parser l'événement SSE
-              this.parseSSEEvent(event)
-              
-              eventEnd = buffer.indexOf('\n\n')
-            }
+      if (notifications.success || notifications.results || Array.isArray(notifications)) {
+        let notificationsList = []
+        
+        if (Array.isArray(notifications)) {
+          notificationsList = notifications
+        } else if (notifications.results) {
+          if (Array.isArray(notifications.results)) {
+            notificationsList = notifications.results
           }
-        } catch (streamError) {
-          console.error('❌ Erreur lors de la lecture du stream:', streamError)
-          throw streamError
+        } else if (notifications.results && notifications.results) {
+          notificationsList = notifications.results
         }
+        
+        // Stocker les IDs des notifications existantes
+        notificationsList.forEach(notif => {
+          if (notif.id) {
+            this.lastNotificationIds.add(notif.id.toString())
+          }
+        })
+        
+        // Garder le timestamp de la plus récente
+        if (notificationsList.length > 0) {
+          this.lastNotificationTimestamp = notificationsList[0].created_at
+        }
+        
+        console.log('📝 État initial:', {
+          count: this.lastUnreadCount,
+          notifications: notificationsList.length,
+          lastTimestamp: this.lastNotificationTimestamp
+        })
       }
       
-      // Démarrer le traitement du stream
-      processStream()
-      
-    } catch (fetchError) {
-      console.warn('⚠️ Échec fetch SSE:', fetchError.message, '- Tentative EventSource classique')
-      
-      // Fallback vers EventSource classique avec token en paramètre
-      this.tryEventSourceSSE(baseUrl, endpoint, token)
+    } catch (error) {
+      console.error('❌ Erreur chargement état initial:', error)
     }
   }
 
-  // Fallback EventSource classique avec token en paramètre
-  tryEventSourceSSE(baseUrl, endpoint, token) {
+  // Vérifier les nouvelles notifications
+  async checkForNewNotifications() {
     try {
-      const sseUrlWithToken = `${baseUrl}${endpoint}?token=${encodeURIComponent(token)}`
+      console.log('🔍 Vérification nouvelles notifications...')
       
-      console.log('🔗 Fallback EventSource vers:', sseUrlWithToken.replace(token, token.substring(0, 10) + '...'))
+      // Stats pour détecter les changements de count
+      const statsResponse = await this.getStatistics()
+      const currentUnreadCount = statsResponse.success && statsResponse.data?.unread_count || 0
       
-      this.eventSource = new EventSource(sseUrlWithToken)
+      console.log('📊 Comparaison counts:', {
+        previous: this.lastUnreadCount,
+        current: currentUnreadCount,
+        changed: currentUnreadCount !== this.lastUnreadCount
+      })
       
-      // Timeout pour basculer vers le polling si SSE ne fonctionne pas
-      const sseTimeout = setTimeout(() => {
-        console.log('⚠️ EventSource timeout - Basculement vers le polling')
-        this.fallbackToPolling()
-      }, 5000)
-      
-      this.eventSource.onopen = () => {
-        console.log('✅ Connexion EventSource établie')
-        clearTimeout(sseTimeout)
-      }
-      
-      this.eventSource.onmessage = (event) => {
-        try {
-          const notification = JSON.parse(event.data)
-          this.handleNewNotification(notification)
-        } catch (error) {
-          console.error('Erreur parsing notification SSE:', error)
+      // Si le count a changé, récupérer les nouvelles notifications
+      if (currentUnreadCount !== this.lastUnreadCount) {
+        console.log('📈 Nouveau count détecté:', this.lastUnreadCount, '->', currentUnreadCount)
+        
+        // Récupérer les notifications récentes
+        const notificationsResponse = await this.getNotifications({ 
+          limit: Math.max(10, currentUnreadCount),
+          ordering: '-created_at' 
+        })
+        
+        console.log('📥 Response notifications polling:', notificationsResponse)
+        
+        if (notificationsResponse.success || notificationsResponse.results || Array.isArray(notificationsResponse)) {
+          let notificationsList = []
+          
+          if (Array.isArray(notificationsResponse)) {
+            notificationsList = notificationsResponse
+          } else if (notificationsResponse.results) {
+            if (Array.isArray(notificationsResponse.results)) {
+              notificationsList = notificationsResponse.results
+            }
+          } else if (notificationsResponse.results && notificationsResponse.results) {
+            notificationsList = notificationsResponse.results
+          }
+          
+          // Identifier les nouvelles notifications
+          const newNotifications = []
+          
+          for (const notification of notificationsList) {
+            if (!this.lastNotificationIds.has(notification.id.toString())) {
+              newNotifications.push(notification)
+              this.lastNotificationIds.add(notification.id.toString())
+            }
+          }
+          
+          // Si on a de nouvelles notifications, les publier
+          if (newNotifications.length > 0) {
+            console.log('🔔 Nouvelles notifications détectées:', newNotifications.length)
+            
+            for (const notification of newNotifications) {
+              this.publishToSubscribers({
+                type: 'notification',
+                data: notification
+              })
+            }
+          }
+        }
+        
+        // Mettre à jour le count et publier les stats
+        if (currentUnreadCount !== this.lastUnreadCount) {
+          this.publishToSubscribers({
+            type: 'stats',
+            data: {
+              unread_count: currentUnreadCount,
+              total_count: statsResponse.data?.total_count || currentUnreadCount
+            }
+          })
+          
+          this.lastUnreadCount = currentUnreadCount
         }
       }
       
-      this.eventSource.onerror = (error) => {
-        console.error('❌ Erreur EventSource:', error)
-        this.fallbackToPolling()
+    } catch (error) {
+      console.error('❌ Erreur vérification nouvelles notifications:', error)
+    }
+  }
+
+  // Lire le stream SSE en continu
+  async readSSEStream(readableStream) {
+    const reader = readableStream.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    
+    try {
+      console.log('� Début de la lecture du stream SSE...')
+      
+      while (true) {
+        const { done, value } = await reader.read()
+        
+        if (done) {
+          console.log('🔚 Stream SSE fermé par le serveur')
+          break
+        }
+        
+        // Décoder les données reçues
+        buffer += decoder.decode(value, { stream: true })
+        
+        // Traiter les événements complets (délimités par \n\n)
+        let eventEnd = buffer.indexOf('\n\n')
+        while (eventEnd !== -1) {
+          const eventData = buffer.substring(0, eventEnd)
+          buffer = buffer.substring(eventEnd + 2)
+          
+          // Parser et traiter l'événement
+          await this.processSSEEvent(eventData)
+          
+          eventEnd = buffer.indexOf('\n\n')
+        }
+      }
+    } catch (streamError) {
+      console.error('❌ Erreur lors de la lecture du stream SSE:', streamError)
+      throw streamError
+    } finally {
+      // Nettoyer le reader
+      if (reader) {
+        try {
+          reader.cancel()
+        } catch (cancelError) {
+          console.warn('⚠️ Erreur lors de l\'annulation du reader:', cancelError)
+        }
       }
       
-    } catch (eventSourceError) {
-      console.error('❌ Erreur EventSource:', eventSourceError)
-      this.fallbackToPolling()
+      // Programmer la reconnexion
+      this.scheduleSSEReconnection()
     }
+  }
+
+  // Traiter un événement SSE
+  async processSSEEvent(eventData) {
+    if (!eventData.trim()) {
+      return // Ignorer les événements vides
+    }
+    
+    try {
+      console.log('📨 Événement SSE reçu:', eventData)
+      
+      const lines = eventData.split('\n')
+      let eventType = null
+      let data = null
+      let id = null
+      
+      // Parser les lignes de l'événement SSE
+      for (const line of lines) {
+        if (line.startsWith('event: ')) {
+          eventType = line.substring(7).trim()
+        } else if (line.startsWith('data: ')) {
+          const jsonData = line.substring(6)
+          if (jsonData === '[DONE]') {
+            console.log('🏁 Événement de fin SSE reçu')
+            return
+          }
+          
+          try {
+            data = JSON.parse(jsonData)
+          } catch (parseError) {
+            console.warn('⚠️ Données SSE non-JSON:', jsonData)
+            data = jsonData
+          }
+        } else if (line.startsWith('id: ')) {
+          id = line.substring(4).trim()
+        }
+      }
+      
+      // Traiter selon le type d'événement
+      await this.handleSSEEvent(eventType, data, id)
+      
+    } catch (error) {
+      console.error('❌ Erreur lors du traitement de l\'événement SSE:', error, eventData)
+    }
+  }
+
+  // Gérer les différents types d'événements SSE
+  async handleSSEEvent(eventType, data, eventId) {
+    console.log(`🎯 Traitement événement SSE: ${eventType}`, data)
+    
+    switch (eventType) {
+      case 'notification':
+      case 'new_notification':
+        // Nouvelle notification reçue
+        if (data) {
+          this.handleNewNotification(data)
+        }
+        break
+        
+      case 'notification_read':
+        // Notification marquée comme lue
+        if (data && data.notification_id) {
+          this.handleNotificationRead(data.notification_id)
+        }
+        break
+        
+      case 'notifications_count':
+        // Mise à jour du count non lu
+        if (data && typeof data.unread_count === 'number') {
+          this.handleUnreadCountUpdate(data.unread_count)
+        }
+        break
+        
+      case 'ping':
+      case 'heartbeat':
+        // Keepalive du serveur
+        console.log('💓 Heartbeat SSE reçu')
+        break
+        
+      case 'error':
+        // Erreur côté serveur
+        console.error('❌ Erreur SSE du serveur:', data)
+        break
+        
+      default:
+        // Événement par défaut (traiter comme nouvelle notification)
+        if (data) {
+          console.log('🔔 Événement SSE générique traité comme notification:', eventType)
+          this.handleNewNotification(data)
+        }
+        break
+    }
+  }
+
+  // Programmer une reconnexion SSE
+  scheduleSSEReconnection() {
+    // Éviter les reconnexions multiples
+    if (this.reconnectionTimeout) {
+      clearTimeout(this.reconnectionTimeout)
+    }
+    
+    const delay = 5000 // 5 secondes
+    console.log(`⏰ Reconnexion SSE programmée dans ${delay}ms`)
+    
+    this.reconnectionTimeout = setTimeout(() => {
+      console.log('🔄 Tentative de reconnexion SSE...')
+      this.connectSSE()
+    }, delay)
+  }
+
+  // Gérer la notification read depuis SSE
+  handleNotificationRead(notificationId) {
+    console.log('✅ Notification SSE marquée comme lue:', notificationId)
+    
+    // Invalider le cache
+    this.invalidateCache()
+    
+    // Notifier les subscribers
+    this.notifySubscribers('read', { notificationId })
+    
+    // Émettre l'événement
+    window.dispatchEvent(new CustomEvent('notification:read', {
+      detail: { notificationId },
+      bubbles: true
+    }))
+  }
+
+  // Gérer la mise à jour du count depuis SSE
+  handleUnreadCountUpdate(newCount) {
+    console.log('🔢 Mise à jour count non lu SSE:', newCount)
+    
+    // Invalider le cache des stats
+    this.cache.delete('notification_stats')
+    
+    // Notifier les subscribers
+    this.notifySubscribers('count_update', { count: newCount })
+    
+    // Émettre l'événement
+    window.dispatchEvent(new CustomEvent('notification:count_update', {
+      detail: { count: newCount },
+      bubbles: true
+    }))
+  }
+
+    // S'abonner aux événements de notifications
+  subscribe(callback) {
+    this.subscribers.add(callback)
+    
+    // Retourner une fonction de désabonnement
+    return () => {
+      this.subscribers.delete(callback)
+    }
+  }
+
+  // Méthode obsolète supprimée - SSE fonctionne uniquement avec headers maintenant
+  // EventSource ne supporte pas les headers personnalisés, donc fallback direct vers polling
+  tryEventSourceSSE(baseUrl, endpoint, token) {
+    console.warn('⚠️ EventSource avec token en paramètre non supporté - Basculement vers polling')
+    this.fallbackToPolling()
   }
 
   // Parser un événement SSE du format text/event-stream
@@ -430,9 +659,9 @@ class NotificationService {
           limit: currentCount - this.lastUnreadCount
         })
 
-        if (response.success && response.data?.results) {
+        if (response.success && response.results) {
           // Traiter chaque nouvelle notification
-          response.data.results.forEach(notification => {
+          response.results.forEach(notification => {
             // Vérifier si c'est vraiment une nouvelle notification
             if (!this.lastNotificationTimestamp || 
                 new Date(notification.created_at) > new Date(this.lastNotificationTimestamp)) {
@@ -441,8 +670,8 @@ class NotificationService {
           })
 
           // Mettre à jour le timestamp de la dernière notification
-          if (response.data.results.length > 0) {
-            this.lastNotificationTimestamp = response.data.results[0].created_at
+          if (response.results.length > 0) {
+            this.lastNotificationTimestamp = response.results[0].created_at
           }
         }
 
@@ -455,36 +684,73 @@ class NotificationService {
 
   // Gérer une nouvelle notification (commun à SSE et polling)
   handleNewNotification(notification) {
-    // Invalider le cache
+    console.log('🔔 Traitement nouvelle notification:', notification)
+    
+    // Invalider le cache pour forcer la mise à jour
     this.invalidateCache()
+    
+    // Sauvegarder la notification dans localStorage pour persistance
+    try {
+      const savedNotifications = JSON.parse(localStorage.getItem('ccc_notifications') || '[]')
+      const formattedNotification = this.formatNotification(notification)
+      
+      // Éviter les doublons
+      const exists = savedNotifications.find(n => n.id === formattedNotification.id)
+      if (!exists) {
+        savedNotifications.unshift(formattedNotification)
+        
+        // Limiter à 50 notifications en cache
+        if (savedNotifications.length > 50) {
+          savedNotifications.splice(50)
+        }
+        
+        localStorage.setItem('ccc_notifications', JSON.stringify(savedNotifications))
+        console.log('💾 Notification sauvée dans localStorage')
+      }
+    } catch (storageError) {
+      console.warn('⚠️ Erreur sauvegarde localStorage:', storageError)
+    }
     
     // Émettre un événement pour la nouvelle notification
     window.dispatchEvent(new CustomEvent('notification:new', {
-      detail: notification
+      detail: notification,
+      bubbles: true
     }))
     
-    // Notifier les subscribers
+  // Notifier les subscribers avec vérification d'erreur
+  try {
+    console.log('📢 Notification des subscribers:', {
+      event: 'new',
+      notification: notification,
+      subscribersCount: this.subscribers.size
+    })
     this.notifySubscribers('new', notification)
-    
-    // Log pour le debug
-    console.log('🔔 Nouvelle notification:', notification.title || notification.message)
+  } catch (subscribeError) {
+    console.error('❌ Erreur notification subscribers:', subscribeError)
+  }    // Log pour le debug
+    console.log('🔔 Nouvelle notification traitée:', notification.title || notification.message)
   }
 
   // Fermer la connexion temps réel
   disconnectRealTime() {
-    // Fermer la connexion SSE
-    if (this.eventSource) {
-      this.eventSource.close()
-      this.eventSource = null
-    }
-    
     // Arrêter le polling
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval)
       this.pollingInterval = null
     }
     
-    console.log('🔌 Connexion notifications temps réel fermée')
+    // Annuler le timeout de reconnexion
+    if (this.reconnectionTimeout) {
+      clearTimeout(this.reconnectionTimeout)
+      this.reconnectionTimeout = null
+    }
+    
+    // Nettoyer l'état
+    this.lastUnreadCount = 0
+    this.lastNotificationTimestamp = null
+    this.lastNotificationIds.clear()
+    
+    console.log('🔌 Polling notifications arrêté')
   }
 
   // S'abonner aux événements de notifications
@@ -497,13 +763,36 @@ class NotificationService {
     }
   }
 
+  // Publier un événement à tous les subscribers
+  publishToSubscribers(eventData) {
+    console.log(`📡 Publication événement: ${eventData.type}`, eventData)
+    
+    this.subscribers.forEach((callback, index) => {
+      try {
+        callback(eventData.type, eventData.data)
+        console.log(`✅ Subscriber ${index} notifié: ${eventData.type}`)
+      } catch (error) {
+        console.error(`❌ Erreur subscriber ${index}:`, error)
+      }
+    })
+  }
+
   // Notifier tous les subscribers
   notifySubscribers(event, data = null) {
-    this.subscribers.forEach(callback => {
+    console.log(`🔔 Notification subscribers: ${event}`, `(${this.subscribers.size} abonnés)`)
+    
+    if (this.subscribers.size === 0) {
+      console.warn('⚠️ Aucun subscriber pour recevoir l\'événement:', event)
+      return
+    }
+    
+    this.subscribers.forEach((callback, index) => {
       try {
         callback(event, data)
+        console.log(`✅ Subscriber ${index} notifié avec succès`)
       } catch (error) {
-        console.error('Erreur dans le callback de notification:', error)
+        console.error(`❌ Erreur dans le callback subscriber ${index}:`, error)
+        // Ne pas interrompre les autres callbacks en cas d'erreur
       }
     })
   }
@@ -676,3 +965,9 @@ class NotificationService {
 
 // Instance singleton
 export const notificationService = new NotificationService()
+
+// Exposer globalement en mode développement pour le debugging
+if (import.meta.env.DEV) {
+  window.notificationService = notificationService
+  console.log('🔔 Service notifications exposé globalement (mode dev)')
+}

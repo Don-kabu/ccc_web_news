@@ -7,7 +7,8 @@ Plateforme moderne de gestion des actualités universitaires développée avec V
 ![Responsive](https://img.shields.io/badge/Design-Responsive-blue?style=for-the-badge&logo=css3&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green.svg?style=for-the-badge)
 
-![Interface Principale](docs/photo/homepage.png)
+![Interface Principale - Page d'Accueil](docs/photo/homepage.png)
+*Interface principale avec navigation et actualités*
 
 ## 🚀 Démarrage Rapide
 
@@ -29,50 +30,124 @@ npm run dev
 - 🔧 **[Documentation Technique](docs/DOCUMENTATION-TECHNIQUE-COMPLETE.md)** - Architecture et API
 - 💻 **[Guide de Développement](docs/GUIDE-DEVELOPPEMENT.md)** - Conventions et contribution
 
-### 📸 **Captures d'Écran**
-Découvrez l'interface avec nos [captures d'écran détaillées](docs/photo/) :
-- [Processus d'inscription](docs/photo/register1.png)
-- [Vérification OTP](docs/photo/verifyopt.png)
-- [Interface de publication](docs/photo/publish.png)
-- [Tableau de bord admin](docs/photo/statistics.png)
+### 📸 **Captures d'Écran et Workflows Complets**
+Découvrez l'interface complète avec nos workflows visuels détaillés :
+
+#### 🔐 **Processus d'Authentification**
+| Étape | Capture | Description |
+|-------|---------|-------------|
+| 1. Connexion | ![Connexion](docs/photo/login.png) | Interface de connexion sécurisée |
+| 2. Email | ![Email](docs/photo/mailfield.png) | Saisie et validation email |
+| 3. Notification | ![Email envoyé](docs/photo/mailsent.png) | Confirmation d'envoi |
+| 4. OTP | ![Vérification](docs/photo/verifyopt.png) | Code de vérification |
+
+#### 📝 **Processus d'Inscription**
+| Étape | Capture | Description |
+|-------|---------|-------------|
+| 1. Université | ![Étape 1](docs/photo/register1.png) | Informations établissement |
+| 2. Utilisateur | ![Étape 2](docs/photo/register2.png) | Données personnelles |
+| 3. Mot de passe | ![Password](docs/photo/register%20password.png) | Sécurisation compte |
+| 4. Finalisation | ![Formulaire](docs/photo/forminuniversity.png) | Configuration université |
+
+#### 📰 **Gestion des Actualités**
+| Fonctionnalité | Capture | Usage |
+|----------------|---------|-------|
+| Publication | ![Publish 1](docs/photo/publish.png) | Interface principale |
+| Éditeur | ![Publish 2](docs/photo/publish2.png) | Éditeur avancé |
+| Lecture | ![News](docs/photo/newssee.png) | Consultation articles |
+
+#### ⚙️ **Configuration et Profils**
+| Section | Capture | Fonctionnalités |
+|---------|---------|-----------------|
+| Notifications | ![Settings](docs/photo/notification%20setting.png) | Paramètres alertes |
+| Profil | ![Profil](docs/photo/inforperso1.png) | Informations personnelles |
+
+**➡️ [Documentation visuelle complète](docs/INDEX-DOCUMENTATION.md)**
 
 ---
 
 ## 🌟 Fonctionnalités
 
+### 🔐 Authentification et Sécurité
+
+#### Connexion Utilisateur
 ![Interface de connexion](docs/photo/login.png)
 
-### 🔐 Authentification et gestion des utilisateurs
+#### Saisie Email et Validation
+![Champ email](docs/photo/mailfield.png)
+
+#### Notification Email
+![Email envoyé](docs/photo/mailsent.png)
+
+#### Vérification OTP Sécurisée
+![Vérification OTP](docs/photo/verifyopt.png)
+
+**Fonctionnalités d'authentification :**
 - ✅ Système d'inscription multi-université avec vérification OTP
 - ✅ Authentification sécurisée avec rôles (Admin, Modérateur, Publiant, Étudiant)
-- ✅ Gestion des profils utilisateurs
+- ✅ Validation email en temps réel
 - ✅ Système de permissions granulaire
 
-### 📰 Gestion des actualités
+### 📝 Processus d'Inscription Complet
+
+#### Étape 1 : Informations Université
+![Inscription étape 1](docs/photo/register1.png)
+
+#### Étape 2 : Informations Utilisateur
+![Inscription étape 2](docs/photo/register2.png)
+
+#### Configuration du Mot de Passe
+![Mot de passe](docs/photo/register%20password.png)
+
+#### Formulaire Université
+![Formulaire université](docs/photo/forminuniversity.png)
+
+### 📰 Gestion des Actualités
+
+#### Interface de Publication Principale
+![Interface de publication](docs/photo/publish.png)
+
+#### Éditeur de Contenu Avancé
+![Éditeur avancé](docs/photo/publish2.png)
+
+#### Consultation des Articles
+![Lecture des news](docs/photo/newssee.png)
+
+**Fonctionnalités de publication :**
 - ✅ Publication d'actualités avec niveaux d'importance
 - ✅ Système de modération et validation
 - ✅ Interface de publication intuitive
 - ✅ Gestion des brouillons et planification
+- ✅ Éditeur riche avec prévisualisation
 
-![Interface de publication](docs/photo/publish.png)
+### 🔔 Système de Notifications
 
-### 🔔 Système de notifications
+#### Paramètres de Notification
+![Paramètres notifications](docs/photo/notification%20setting.png)
+
+**Fonctionnalités de notification :**
 - ✅ Notifications en temps réel
-- ✅ Paramètres personnalisables
+- ✅ Paramètres personnalisables par utilisateur
 - ✅ Support digest quotidien/hebdomadaire
 - ✅ Notifications urgentes prioritaires
+- ✅ Interface de configuration intuitive
+
+### 👤 Gestion des Profils
+
+#### Informations Personnelles
+![Profil utilisateur](docs/photo/inforperso1.png)
+
+**Gestion des profils :**
+- ✅ Profils utilisateurs complets
+- ✅ Informations personnelles modifiables
+- ✅ Gestion des préférences
+- ✅ Historique d'activité
 
 ### 🏛️ Multi-université
 - ✅ Support de multiples établissements
 - ✅ Isolation des données par université
 - ✅ Gestion centralisée des institutions
-
-### 📊 Tableau de bord et statistiques
-- ✅ Vue d'ensemble des actualités
-- ✅ Statistiques de publication et consultation
-- ✅ Interface d'administration complète
-
-![Statistiques](docs/photo/statistics.png)
+- ✅ Processus d'inscription spécialisé par université
 
 ### 📱 **NOUVEAU** - Design Responsive Complet
 - ✅ **Support multi-appareils** : Mobile, Tablette, Desktop

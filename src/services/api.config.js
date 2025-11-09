@@ -16,6 +16,7 @@ export const API_RESPONSE_TYPES = {
   UNAUTHORIZED: 'unauthorized',
   FORBIDDEN: 'forbidden',
   NOT_FOUND: 'not_found',
+  CONFLICT: 'conflict',
   SERVER_ERROR: 'server_error'
 }
 
@@ -28,6 +29,7 @@ export const HTTP_STATUS = {
   UNAUTHORIZED: 401,
   FORBIDDEN: 403,
   NOT_FOUND: 404,
+  CONFLICT: 409,
   VALIDATION_ERROR: 422,
   INTERNAL_SERVER_ERROR: 500
 }

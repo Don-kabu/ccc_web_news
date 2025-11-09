@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="handleSubmit" class="join-university-form">
+  <form @submit.prevent="handleSubmit" class="join-university-form" :class="{ 'dark': isDark }">
     <h2 class="form-title">
       <template v-if="currentStep === 'email'">Rejoindre une université</template>
       <template v-else-if="currentStep === 'university'">Sélectionner l'université</template>
@@ -311,26 +311,6 @@
       </div>
     </div>
 
-    <!-- Étape 4: Succès -->
-    <div v-if="currentStep === 'success'" class="success-step">
-      <div class="success-message">
-        <div class="success-icon">✓</div>
-        <h3>Inscription réussie !</h3>
-        <p>Votre demande d'inscription à <strong>{{ selectedUniversity?.name }}</strong> a été envoyée avec succès.</p>
-        <p><strong>{{ formData.first_name }} {{ formData.last_name }}</strong> ({{ formData.user_role }})</p>
-        <p class="redirect-info">
-          Votre compte sera activé après validation par l'administrateur de l'université.
-        </p>
-        <p class="redirect-info">Redirection automatique vers la page de connexion dans 3 secondes...</p>
-        <button 
-          type="button" 
-          @click="() => window.location.href = '/login'"
-          class="btn btn-primary"
-        >
-          Se connecter maintenant
-        </button>
-      </div>
-    </div>
   </form>
 </template>
 
@@ -340,15 +320,20 @@ import EmailVerification from '../common/EmailVerification.vue'
 import PasswordValidator from '../common/PasswordValidator.vue'
 import { authService } from '../../services/auth.service'
 import { universityService } from '../../services/university.service'
+import { useTheme } from '@/composables/useTheme.js'
 
 export default {
   name: 'JoinUniversityForm',
+  emits: ['success', 'cancel'],
   components: {
     EmailVerification,
     PasswordValidator
   },
-  setup() {
-    const currentStep = ref('email') // 'email' | 'university' | 'form' | 'success'
+  setup(props, { emit }) {
+    // Composables
+    const { isDark } = useTheme()
+    
+    const currentStep = ref('email') // 'email' | 'university' | 'form'
     const isLoading = ref(false)
     const errorMessage = ref('')
     const verifiedEmail = ref('')
@@ -413,6 +398,11 @@ export default {
       currentStep.value = 'email'
       errorMessage.value = ''
       selectedUniversity.value = null
+    }
+    
+    const handleCancel = () => {
+      console.log('📤 Annulation du processus de rejoindre université')
+      emit('cancel')
     }
     
     const goBackToUniversitySelection = () => {
@@ -549,13 +539,18 @@ export default {
 
         console.log('📝 Données d\'inscription université:', joinData)
         
-        await authService.joinUniversity(joinData)
-        currentStep.value = 'success'
+        const response = await authService.joinUniversity(joinData)
         
-        // Redirection automatique après 5 secondes
-        setTimeout(() => {
-          window.location.href = '/login'
-        }, 5000)
+        // Si l'inscription réussit, émettre l'événement de succès
+        if (response.status === 'success') {
+          const userData = response.data.user || response.data
+          console.log('✅ Inscription université réussie, émission événement succès:', userData)
+          
+          // Émettre l'événement de succès avec les données utilisateur
+          emit('success', userData)
+        } else {
+          throw new Error(response.message || 'Erreur lors de l\'inscription')
+        }
         
       } catch (error) {
         console.error('Erreur lors de l\'inscription:', error)
@@ -575,6 +570,10 @@ export default {
             }
           })
           errorMessage.value = errorMessages.join('\n')
+        } else if (error.status === 409) {
+          // Gestion spécifique de l'erreur 409 (conflit)
+          // Le message de l'erreur 409 est déjà extrait dans le service auth
+          errorMessage.value = error.message || 'Un conflit est survenu lors de l\'inscription'
         } else {
           errorMessage.value = error.message || 'Erreur lors de l\'inscription à l\'université'
         }
@@ -584,6 +583,7 @@ export default {
     }
     
     return {
+      isDark,
       currentStep,
       isLoading,
       errorMessage,
@@ -599,6 +599,7 @@ export default {
       onEmailVerified,
       onVerificationError,
       goBackToEmail,
+      handleCancel,
       goBackToUniversitySelection,
       selectUniversity,
       proceedToForm,
@@ -615,24 +616,141 @@ export default {
   max-width: 700px;
   margin: 0 auto;
   padding: 2rem;
-  background: white;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  
+  /* Variables CSS pour le mode clair */
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --background-primary: #ffffff;
+  --background-secondary: #f9fafb;
+  --background-tertiary: #f8fafc;
+  --border-color: #e5e7eb;
+  --border-light: #d1d5db;
+  --border-focus: #3b82f6;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  
+  /* Couleurs spécifiques */
+  --success-bg: #f0fdf4;
+  --success-border: #bbf7d0;
+  --success-text: #065f46;
+  --success-badge-bg: #10b981;
+  --error-bg: #fef2f2;
+  --error-border: #fecaca;
+  --error-text: #dc2626;
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --input-focus-border: #3b82f6;
+  --input-focus-shadow: rgba(59, 130, 246, 0.1);
+  --input-readonly-bg: #f9fafb;
+  --input-readonly-text: #6b7280;
+  --section-bg: #f8fafc;
+  --section-border: #e2e8f0;
+  --card-bg: #ffffff;
+  --card-border: #e5e7eb;
+  --card-hover-border: #3b82f6;
+  --card-hover-shadow: rgba(59, 130, 246, 0.1);
+  --card-selected-bg: #f0fdf4;
+  --card-selected-border: #10b981;
+  --no-data-bg: #f9fafb;
+  --no-data-border: #d1d5db;
+  --btn-primary-bg: #3b82f6;
+  --btn-primary-hover: #2563eb;
+  --btn-secondary-bg: #6b7280;
+  --btn-secondary-hover: #4b5563;
+  
+  background: var(--background-primary);
+}
+
+.join-university-form.dark {
+  /* Variables CSS pour le mode sombre */
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --background-primary: #0f172a;
+  --background-secondary: #1e293b;
+  --background-tertiary: #1e293b;
+  --border-color: #334155;
+  --border-light: #475569;
+  --border-focus: #3b82f6;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  
+  /* Couleurs spécifiques pour le mode sombre */
+  --success-bg: rgba(16, 185, 129, 0.1);
+  --success-border: rgba(16, 185, 129, 0.3);
+  --success-text: #4ade80;
+  --success-badge-bg: #22c55e;
+  --error-bg: rgba(239, 68, 68, 0.1);
+  --error-border: rgba(239, 68, 68, 0.3);
+  --error-text: #f87171;
+  --input-bg: #1e293b;
+  --input-border: #475569;
+  --input-focus-border: #3b82f6;
+  --input-focus-shadow: rgba(59, 130, 246, 0.2);
+  --input-readonly-bg: #334155;
+  --input-readonly-text: #94a3b8;
+  --section-bg: #1e293b;
+  --section-border: #334155;
+  --card-bg: #1e293b;
+  --card-border: #334155;
+  --card-hover-border: #3b82f6;
+  --card-hover-shadow: rgba(59, 130, 246, 0.2);
+  --card-selected-bg: rgba(16, 185, 129, 0.1);
+  --card-selected-border: #22c55e;
+  --no-data-bg: #1e293b;
+  --no-data-border: #475569;
+  --btn-primary-bg: #3b82f6;
+  --btn-primary-hover: #2563eb;
+  --btn-secondary-bg: #64748b;
+  --btn-secondary-hover: #475569;
 }
 
 .form-title {
   text-align: center;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 2rem;
   font-size: 1.5rem;
   font-weight: 600;
+  transition: color 0.3s ease;
+  animation: slideInDown 0.5s ease;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .step-description {
   text-align: center;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 2rem;
   line-height: 1.6;
+  transition: color 0.3s ease;
+  animation: fadeIn 0.6s ease 0.2s both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .email-step,
@@ -641,6 +759,18 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  animation: slideInUp 0.5s ease;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .step-header {
@@ -652,15 +782,35 @@ export default {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: #f0fdf4;
-  border: 1px solid #bbf7d0;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
   padding: 0.5rem 1rem;
   border-radius: 20px;
   margin-top: 1rem;
+  transition: all 0.3s ease;
+  animation: bounceIn 0.6s ease;
+}
+
+@keyframes bounceIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .verified-email-badge .badge {
-  background: #10b981;
+  background: var(--success-badge-bg);
   color: white;
   padding: 0.25rem 0.5rem;
   border-radius: 12px;
@@ -669,8 +819,9 @@ export default {
 }
 
 .verified-email-badge .email {
-  color: #065f46;
+  color: var(--success-text);
   font-weight: 500;
+  transition: color 0.3s ease;
 }
 
 /* Universités */
@@ -679,27 +830,71 @@ export default {
   flex-direction: column;
   gap: 1rem;
   margin-bottom: 2rem;
+  animation: staggerIn 0.6s ease;
+}
+
+@keyframes staggerIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .university-card {
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
+  border: 2px solid var(--card-border);
+  border-radius: var(--radius-md);
   padding: 1.5rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  background: var(--card-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.university-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(59, 130, 246, 0.05);
+  transition: left 0.3s ease;
+}
+
+.university-card:hover::before {
+  left: 100%;
 }
 
 .university-card:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+  border-color: var(--card-hover-border);
+  box-shadow: 0 2px 8px var(--card-hover-shadow);
+  transform: translateY(-2px);
 }
 
 .university-card.selected {
-  border-color: #10b981;
-  background-color: #f0fdf4;
+  border-color: var(--card-selected-border);
+  background: var(--card-selected-bg);
+  animation: cardSelect 0.3s ease;
+}
+
+@keyframes cardSelect {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .university-info {
@@ -708,31 +903,38 @@ export default {
 
 .university-name {
   margin: 0 0 0.5rem 0;
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 1.2rem;
   font-weight: 600;
+  transition: color 0.3s ease;
 }
 
 .university-details {
   margin: 0 0 0.75rem 0;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 0.9rem;
+  transition: color 0.3s ease;
 }
 
 .university-description {
   margin: 0 0 0.75rem 0;
-  color: #4b5563;
+  color: var(--text-secondary);
   line-height: 1.5;
+  transition: color 0.3s ease;
 }
 
 .website-link {
-  color: #3b82f6;
+  color: var(--border-focus);
   text-decoration: none;
   font-size: 0.9rem;
+  transition: all 0.3s ease;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
 }
 
 .website-link:hover {
   text-decoration: underline;
+  background: var(--background-secondary);
 }
 
 .selection-indicator {
@@ -746,51 +948,92 @@ export default {
 .selected-icon {
   width: 2rem;
   height: 2rem;
-  background: #10b981;
+  background: var(--success-badge-bg);
   color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: bold;
+  animation: checkmarkPop 0.3s ease;
+}
+
+@keyframes checkmarkPop {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .no-universities {
   text-align: center;
-  color: #6b7280;
+  color: var(--text-secondary);
   padding: 2rem;
-  background: #f9fafb;
-  border-radius: 8px;
-  border: 1px dashed #d1d5db;
+  background: var(--no-data-bg);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--no-data-border);
+  transition: all 0.3s ease;
+  animation: fadeIn 0.5s ease;
 }
 
 .selected-university-info h3 {
   margin: 0 0 0.25rem 0;
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 1.3rem;
+  transition: color 0.3s ease;
 }
 
 .selected-university-info p {
   margin: 0;
-  color: #6b7280;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
 }
 
 /* Sections de formulaire */
 .form-section {
-  background: #f8fafc;
+  background: var(--section-bg);
   padding: 1.5rem;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--section-border);
   margin-bottom: 1rem;
+  transition: all 0.3s ease;
+  animation: slideInUp 0.4s ease;
+}
+
+.form-section:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
 }
 
 .section-title {
   margin: 0 0 1.5rem 0;
-  color: #2d3748;
+  color: var(--text-primary);
   font-size: 1.1rem;
   font-weight: 600;
-  border-bottom: 2px solid #3b82f6;
+  border-bottom: 2px solid var(--border-focus);
   padding-bottom: 0.5rem;
+  transition: color 0.3s ease;
+  position: relative;
+}
+
+.section-title::before {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--success-badge-bg);
+  transition: width 0.3s ease;
+}
+
+.form-section:hover .section-title::before {
+  width: 100%;
 }
 
 .input-group {
@@ -798,80 +1041,159 @@ export default {
   flex-direction: column;
   gap: 0.5rem;
   margin-bottom: 1rem;
+  animation: inputFadeIn 0.3s ease;
+}
+
+@keyframes inputFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .input-label {
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
   font-size: 0.9rem;
+  transition: color 0.3s ease;
 }
 
 .input-field {
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
   font-size: 1rem;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
 }
 
 .input-field:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--input-focus-border);
+  box-shadow: 0 0 0 3px var(--input-focus-shadow);
+  transform: translateY(-1px);
+}
+
+.input-field:hover {
+  border-color: var(--text-muted);
 }
 
 select.input-field {
   cursor: pointer;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 0.5rem center;
+  background-repeat: no-repeat;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
 }
 
 .input-readonly {
-  background-color: #f9fafb;
-  color: #6b7280;
+  background: var(--input-readonly-bg);
+  color: var(--input-readonly-text);
   cursor: not-allowed;
+  border-style: dashed;
 }
 
 .input-error {
-  border-color: #ef4444;
+  border-color: var(--error-text);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
 }
 
 .error-text {
-  color: #ef4444;
+  color: var(--error-text);
   font-size: 0.875rem;
   margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  animation: slideInDown 0.2s ease;
+}
+
+.error-text::before {
+  content: '⚠';
+  font-size: 0.9rem;
 }
 
 .field-help {
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 0.8rem;
   margin-top: 0.25rem;
+  transition: color 0.3s ease;
 }
 
 .field-status {
   font-size: 0.875rem;
   margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  animation: statusFadeIn 0.3s ease;
+}
+
+@keyframes statusFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .field-status.checking {
-  color: #3b82f6;
+  color: var(--border-focus);
+}
+
+.field-status.checking::before {
+  content: '⏳';
 }
 
 .field-status.success {
-  color: #10b981;
+  color: var(--success-badge-bg);
+}
+
+.field-status.success::before {
+  content: '✅';
 }
 
 .field-status.error {
-  color: #ef4444;
+  color: var(--error-text);
+}
+
+.field-status.error::before {
+  content: '❌';
 }
 
 .error-message {
   padding: 0.75rem;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 6px;
-  color: #dc2626;
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+  border-radius: var(--radius-sm);
+  color: var(--error-text);
   font-size: 0.875rem;
   text-align: center;
   white-space: pre-line;
+  animation: slideInDown 0.3s ease;
+  position: relative;
+}
+
+.error-message::before {
+  content: '⚠';
+  margin-right: 0.5rem;
+  font-size: 1rem;
 }
 
 .button-group {
@@ -879,89 +1201,67 @@ select.input-field {
   gap: 1rem;
   margin-top: 1rem;
   justify-content: center;
+  animation: slideInUp 0.4s ease 0.2s both;
 }
 
 .btn {
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
   min-width: 120px;
   text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  transition: left 0.3s ease;
+}
+
+.btn:hover:not(:disabled)::before {
+  left: 100%;
 }
 
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
 .btn-primary {
-  background-color: #3b82f6;
+  background: var(--btn-primary-bg);
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #2563eb;
+  background: var(--btn-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-secondary {
-  background-color: #6b7280;
+  background: var(--btn-secondary-bg);
   color: white;
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background-color: #4b5563;
+  background: var(--btn-secondary-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
-/* Page de succès */
-.success-step {
-  text-align: center;
-  padding: 2rem 1rem;
-}
-
-.success-message {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-}
-
-.success-icon {
-  width: 60px;
-  height: 60px;
-  background-color: #10b981;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  font-weight: bold;
-}
-
-.success-message h3 {
-  color: #10b981;
-  margin: 0;
-  font-size: 1.25rem;
-}
-
-.success-message p {
-  color: #6b7280;
-  margin: 0;
-  line-height: 1.5;
-}
-
-.redirect-info {
-  color: #8b5cf6 !important;
-  font-style: italic;
-  font-size: 0.875rem;
-  margin-top: 1rem !important;
-}
-
-/* Responsive */
+/* Responsive Design */
 @media (max-width: 768px) {
   .join-university-form {
     padding: 1.5rem;
@@ -969,6 +1269,12 @@ select.input-field {
   
   .university-card {
     padding: 1rem;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .selection-indicator {
+    align-self: flex-end;
   }
   
   .button-group {
@@ -978,5 +1284,87 @@ select.input-field {
   .btn {
     min-width: auto;
   }
+  
+  .form-section {
+    padding: 1rem;
+  }
+  
+  .input-group {
+    margin-bottom: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .join-university-form {
+    padding: 1rem;
+  }
+  
+  .form-title {
+    font-size: 1.25rem;
+  }
+  
+  .university-card {
+    padding: 0.75rem;
+  }
+  
+  .university-name {
+    font-size: 1.1rem;
+  }
+  
+  .input-field {
+    padding: 0.625rem;
+    font-size: 0.9rem;
+  }
+  
+  .btn {
+    padding: 0.625rem 1.25rem;
+    font-size: 0.9rem;
+  }
+  
+  .verified-email-badge {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+}
+
+/* Amélioration de l'accessibilité */
+@media (prefers-reduced-motion: reduce) {
+  .join-university-form *,
+  .join-university-form *::before,
+  .join-university-form *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible pour l'accessibilité */
+.university-card:focus-visible,
+.input-field:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* Animation de progression */
+.join-university-form::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--progress-width, 33%);
+  height: 3px;
+  background: var(--success-badge-bg);
+  transition: width 0.5s ease;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+}
+
+.join-university-form:has([data-step="university"])::before {
+  --progress-width: 66%;
+}
+
+.join-university-form:has([data-step="form"])::before {
+  --progress-width: 100%;
 }
 </style>

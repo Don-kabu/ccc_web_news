@@ -607,7 +607,8 @@ class AuthService {
       console.error('Erreur d\'inscription à l\'université:', error)
       
       // Si c'est une erreur HTTP avec des détails de validation, on préserve la structure
-      if (error.status && (error.status === 400 || error.status === 422)) {
+      if (error.status && (error.status === 400 || error.status === 409 || error.status === 422)) {
+        // Préserver l'erreur pour que JoinUniversityForm puisse traiter les validationErrors
         throw error
       }
       

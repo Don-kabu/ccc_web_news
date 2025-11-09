@@ -1,5 +1,5 @@
 <template>
-  <form @submit.prevent="handleLogin" class="auth-form login-form">
+  <form @submit.prevent="handleLogin" class="auth-form login-form" :class="{ 'dark': isDark }">
     <!-- Email -->
     <div class="form-group">
       <label for="email" class="form-label">Email</label>
@@ -100,28 +100,24 @@
       </p>
       <p>
         Ou
-        <button type="button" @click="showJoinUniversityForm = true" class="link-button">
+        <button type="button" @click="$emit('switch-to-register')" class="link-button">
           Rejoindre une institution existante
         </button>
       </p>
     </div>
-
-    <!-- Composant pour rejoindre une université existante -->
-    <JoinUniversityForm 
-      v-if="showJoinUniversityForm"
-      @success="handleJoinUniversitySuccess"
-      @cancel="closeJoinUniversityForm"
-    />
   </form>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { authService } from '@/services/auth.service.js'
-import JoinUniversityForm from './JoinUniversityForm.vue'
+import { useTheme } from '@/composables/useTheme.js'
+
+// Composables
+const { isDark } = useTheme()
 
 // Émissions
-const emit = defineEmits(['login-success', 'switch-to-register'])
+const emit = defineEmits(['login-success', 'switch-to-register', 'join-university-success'])
 
 // État réactif
 const loginForm = reactive({
@@ -133,7 +129,6 @@ const loginForm = reactive({
 const showPassword = ref(false)
 const isLoading = ref(false)
 const errorMessage = ref('')
-const showJoinUniversityForm = ref(false)
 
 // Méthodes
 const togglePasswordVisibility = () => {
@@ -169,15 +164,7 @@ const handleLogin = async () => {
   }
 }
 
-const closeJoinUniversityForm = () => {
-  showJoinUniversityForm.value = false
-}
 
-const handleJoinUniversitySuccess = (userData) => {
-  console.log('✅ Rejoindre université réussie:', userData)
-  emit('login-success', userData)
-  showJoinUniversityForm.value = false
-}
 
 // Vérifier s'il y a un utilisateur mémorisé
 const checkRememberedUser = () => {
@@ -204,6 +191,77 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  transition: all 0.3s ease;
+  
+  /* Variables CSS pour le mode clair */
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --background-primary: #ffffff;
+  --background-secondary: #f9fafb;
+  --background-tertiary: #f3f4f6;
+  --border-color: #e5e7eb;
+  --border-light: #f3f4f6;
+  --border-focus: #6366f1;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  
+  /* Couleurs spécifiques */
+  --input-bg: #ffffff;
+  --input-border: #d1d5db;
+  --input-focus-border: #6366f1;
+  --input-focus-shadow: rgba(99, 102, 241, 0.1);
+  --button-primary-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+  --button-primary-shadow: rgba(99, 102, 241, 0.3);
+  --button-primary-hover-shadow: rgba(99, 102, 241, 0.4);
+  --error-bg: rgba(239, 68, 68, 0.1);
+  --error-border: rgba(239, 68, 68, 0.2);
+  --error-text: #ef4444;
+  --success-bg: rgba(34, 197, 94, 0.1);
+  --success-border: rgba(34, 197, 94, 0.2);
+  --success-text: #22c55e;
+  --link-color: #6366f1;
+  --link-hover-color: #4f46e5;
+}
+
+.auth-form.dark {
+  /* Variables CSS pour le mode sombre */
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --background-primary: #0f172a;
+  --background-secondary: #1e293b;
+  --background-tertiary: #334155;
+  --border-color: #334155;
+  --border-light: #475569;
+  --border-focus: #6366f1;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.6);
+  
+  /* Couleurs spécifiques pour le mode sombre */
+  --input-bg: #1e293b;
+  --input-border: #475569;
+  --input-focus-border: #6366f1;
+  --input-focus-shadow: rgba(99, 102, 241, 0.2);
+  --button-primary-bg: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+  --button-primary-shadow: rgba(99, 102, 241, 0.4);
+  --button-primary-hover-shadow: rgba(99, 102, 241, 0.5);
+  --error-bg: rgba(239, 68, 68, 0.15);
+  --error-border: rgba(239, 68, 68, 0.3);
+  --error-text: #f87171;
+  --success-bg: rgba(34, 197, 94, 0.15);
+  --success-border: rgba(34, 197, 94, 0.3);
+  --success-text: #4ade80;
+  --link-color: #818cf8;
+  --link-hover-color: #6366f1;
 }
 
 .form-group {
@@ -216,6 +274,7 @@ onMounted(() => {
   font-weight: 600;
   color: var(--text-primary);
   font-size: 0.875rem;
+  transition: color 0.3s ease;
 }
 
 .input-wrapper {
@@ -229,23 +288,28 @@ onMounted(() => {
   left: 1rem;
   color: var(--text-muted);
   z-index: 1;
+  transition: color 0.3s ease;
 }
 
 .form-input {
   width: 100%;
   padding: 1rem 1rem 1rem 3rem;
-  border: 2px solid var(--border-color);
+  border: 2px solid var(--input-border);
   border-radius: var(--radius-lg);
   font-size: 1rem;
-  background: var(--background-secondary);
+  background: var(--input-bg);
   color: var(--text-primary);
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  border-color: var(--input-focus-border);
+  box-shadow: 0 0 0 3px var(--input-focus-shadow);
+}
+
+.form-input:focus + .input-icon {
+  color: var(--input-focus-border);
 }
 
 .form-input::placeholder {
@@ -261,11 +325,12 @@ onMounted(() => {
   cursor: pointer;
   padding: 0.25rem;
   border-radius: var(--radius-sm);
-  transition: color 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .password-toggle:hover {
   color: var(--text-primary);
+  background: var(--background-tertiary);
 }
 
 .checkbox-wrapper {
@@ -278,18 +343,24 @@ onMounted(() => {
   width: 1.25rem;
   height: 1.25rem;
   accent-color: #6366f1;
+  transition: all 0.3s ease;
 }
 
 .checkbox-label {
   color: var(--text-secondary);
   font-size: 0.875rem;
   cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.checkbox-label:hover {
+  color: var(--text-primary);
 }
 
 .auth-button {
   width: 100%;
   padding: 1rem 1.5rem;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+  background: var(--button-primary-bg);
   color: white;
   border: none;
   border-radius: var(--radius-lg);
@@ -302,12 +373,33 @@ onMounted(() => {
   justify-content: center;
   gap: 0.5rem;
   min-height: 3.5rem;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 15px var(--button-primary-shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  transition: left 0.3s ease;
+}
+
+.auth-button:hover:not(:disabled)::before {
+  left: 100%;
 }
 
 .auth-button:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 8px 25px var(--button-primary-hover-shadow);
+}
+
+.auth-button:active {
+  transform: translateY(0);
 }
 
 .auth-button:disabled {
@@ -316,13 +408,51 @@ onMounted(() => {
   transform: none;
 }
 
+.loading-spinner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .error-message {
   padding: 1rem;
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  background: var(--error-bg);
+  color: var(--error-text);
   border-radius: var(--radius-md);
   font-size: 0.875rem;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid var(--error-border);
+  animation: slideInDown 0.3s ease;
+  position: relative;
+}
+
+.error-message::before {
+  content: '⚠';
+  margin-right: 0.5rem;
+  font-size: 1rem;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .form-footer {
@@ -334,24 +464,28 @@ onMounted(() => {
   color: var(--text-secondary);
   font-size: 0.875rem;
   margin-bottom: 0.5rem;
+  transition: color 0.3s ease;
 }
 
 .link-button {
   background: none;
   border: none;
-  color: #6366f1;
+  color: var(--link-color);
   cursor: pointer;
   font-weight: 600;
   text-decoration: underline;
   font-size: inherit;
-  transition: color 0.2s ease;
+  transition: all 0.3s ease;
+  padding: 0.25rem;
+  border-radius: var(--radius-sm);
 }
 
 .link-button:hover {
-  color: #4f46e5;
+  color: var(--link-hover-color);
+  text-decoration: none;
 }
 
-/* Modal styles */
+/* Styles de modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -364,6 +498,17 @@ onMounted(() => {
   justify-content: center;
   z-index: 1000;
   padding: 1rem;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-content {
@@ -374,6 +519,19 @@ onMounted(() => {
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: var(--shadow-xl);
+  animation: slideInUp 0.3s ease;
+  border: 1px solid var(--border-color);
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .modal-header {
@@ -388,6 +546,7 @@ onMounted(() => {
   font-size: 1.25rem;
   font-weight: 700;
   color: var(--text-primary);
+  transition: color 0.3s ease;
 }
 
 .close-button {
@@ -397,7 +556,7 @@ onMounted(() => {
   cursor: pointer;
   padding: 0.5rem;
   border-radius: var(--radius-md);
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .close-button:hover {
@@ -424,15 +583,33 @@ onMounted(() => {
   border-radius: var(--radius-md);
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   border: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.primary-button::before, .secondary-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.1);
+  transition: left 0.3s ease;
+}
+
+.primary-button:hover:not(:disabled)::before,
+.secondary-button:hover::before {
+  left: 100%;
 }
 
 .primary-button {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: var(--button-primary-bg);
   color: white;
 }
 
@@ -448,34 +625,60 @@ onMounted(() => {
 }
 
 .secondary-button:hover {
-  background: var(--border-light);
+  background: var(--background-tertiary);
+  border-color: var(--border-light);
 }
 
 .debug-info {
   margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: rgba(59, 130, 246, 0.1);
+  padding: 0.75rem;
+  background: var(--success-bg);
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  border: 1px solid var(--success-border);
+  animation: slideInDown 0.3s ease;
 }
 
 .debug-info small {
-  color: #3b82f6;
+  color: var(--success-text);
   font-weight: 500;
 }
 
 .no-universities-message {
   margin-top: 0.5rem;
-  padding: 0.5rem;
-  background: rgba(239, 68, 68, 0.1);
+  padding: 0.75rem;
+  background: var(--error-bg);
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  border: 1px solid var(--error-border);
+  animation: slideInDown 0.3s ease;
 }
 
 .no-universities-message small {
-  color: #ef4444;
+  color: var(--error-text);
 }
 
+/* Styles pour les erreurs de validation */
+.form-input.error {
+  border-color: var(--error-text) !important;
+  box-shadow: 0 0 0 3px var(--error-border) !important;
+}
+
+.field-error {
+  color: var(--error-text);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  padding-left: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  animation: slideInDown 0.2s ease;
+}
+
+.field-error::before {
+  content: "⚠";
+  font-size: 0.875rem;
+}
+
+/* Responsive Design */
 @media (max-width: 768px) {
   .login-container {
     padding: 1rem;
@@ -633,7 +836,7 @@ onMounted(() => {
   }
 }
 
-/* Landscape orientation optimizations */
+/* Optimisations d'orientation paysage */
 @media (max-height: 500px) and (orientation: landscape) {
   .login-container {
     display: flex;
@@ -665,24 +868,47 @@ onMounted(() => {
   }
 }
 
-/* Styles pour les erreurs de validation */
-.form-input.error {
-  border-color: #ef4444 !important;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+/* Amélioration de l'accessibilité */
+@media (prefers-reduced-motion: reduce) {
+  .auth-form *,
+  .auth-form *::before,
+  .auth-form *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
-.field-error {
-  color: #ef4444;
-  font-size: 0.75rem;
-  margin-top: 0.25rem;
-  padding-left: 0.25rem;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
+/* Focus visible pour l'accessibilité */
+.form-input:focus-visible,
+.checkbox:focus-visible,
+.auth-button:focus-visible,
+.link-button:focus-visible,
+.password-toggle:focus-visible {
+  outline: 2px solid var(--input-focus-border);
+  outline-offset: 2px;
 }
 
-.field-error::before {
-  content: "⚠";
-  font-size: 0.875rem;
+/* États de hover améliorés */
+.form-input:hover {
+  border-color: var(--text-muted);
+}
+
+.checkbox-wrapper:hover .checkbox {
+  transform: scale(1.05);
+}
+
+/* Animation pour le bouton de connexion */
+.auth-button.loading {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 </style>

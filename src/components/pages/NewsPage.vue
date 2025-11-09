@@ -135,6 +135,120 @@
         <button @click="changePage(currentPage+1)" :disabled="currentPage===totalPages">Suivant</button>
       </div>
     </div>
+
+    <!-- Modal de lecture d'article -->
+    <div v-if="selectedArticle" class="article-modal-overlay" @click="closeArticle">
+      <div class="article-modal" @click.stop>
+        <div class="article-modal-header">
+          <h1 class="article-title">{{ selectedArticle.title || 'Article sans titre' }}</h1>
+          <button @click="closeArticle" class="close-button">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+
+        <div class="article-modal-meta">
+          <div class="meta-info">
+            <span class="org-badge">{{ getOrgLabel(selectedArticle.organization_level) }}</span>
+            <span class="cat-badge" :class="getCategoryClass(selectedArticle.category)">
+              {{ getCategoryLabel(selectedArticle.category) }}
+            </span>
+            <span v-if="selectedArticle.status === 'pending'" class="status-badge pending">En attente</span>
+            <span v-else-if="selectedArticle.status === 'approved'" class="status-badge approved">Publié</span>
+            <span v-else-if="selectedArticle.status === 'rejected'" class="status-badge rejected">Rejeté</span>
+          </div>
+          <div class="meta-details">
+            <time>{{ formatDate(selectedArticle.created_at) }}</time>
+            <span v-if="selectedArticle.author" class="author">
+              Par {{ selectedArticle.author.first_name }} {{ selectedArticle.author.last_name }}
+            </span>
+          </div>
+        </div>
+
+        <div class="article-modal-content">
+          <!-- Résumé si disponible -->
+          <div v-if="selectedArticle.excerpt" class="article-excerpt">
+            <h3>Résumé</h3>
+            <p>{{ selectedArticle.excerpt }}</p>
+          </div>
+
+          <!-- Contenu principal -->
+          <div class="article-content">
+            <div v-if="selectedArticle.content" v-html="formatContent(selectedArticle.content)"></div>
+            <div v-else class="no-content">
+              <p>Aucun contenu disponible pour cet article.</p>
+            </div>
+          </div>
+
+          <!-- Pièces jointes -->
+          <div v-if="selectedArticle.attachments?.length" class="article-attachments">
+            <h3>Pièces jointes</h3>
+            <div class="attachments-list">
+              <div 
+                v-for="(attachment, index) in selectedArticle.attachments" 
+                :key="index"
+                class="attachment-item"
+                @click="downloadAttachment(attachment)"
+              >
+                <div class="attachment-icon">
+                  <!-- Image preview -->
+                  <img 
+                    v-if="attachment.type?.startsWith('image/') && attachment.preview" 
+                    :src="attachment.preview" 
+                    :alt="attachment.name || 'Image'"
+                    class="attachment-preview"
+                  />
+                  <!-- Video icon -->
+                  <div v-else-if="attachment.type?.startsWith('video/')" class="file-icon video">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>
+                    </svg>
+                  </div>
+                  <!-- Audio icon -->
+                  <div v-else-if="attachment.type?.startsWith('audio/')" class="file-icon audio">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M9 18V5L21 3V20" stroke="currentColor" stroke-width="2"/>
+                      <circle cx="6" cy="18" r="3" stroke="currentColor" stroke-width="2"/>
+                      <circle cx="18" cy="20" r="3" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                  </div>
+                  <!-- Document icon -->
+                  <div v-else class="file-icon doc">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                      <path d="M14 2H6C5.46957 2 4.96086 2.21071 4.58579 2.58579C4.21071 2.96086 4 3.46957 4 4V20C4 20.5304 4.21071 21.0391 4.58579 21.4142C4.96086 21.7893 5.46957 22 6 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V8L14 2Z" stroke="currentColor" stroke-width="2"/>
+                      <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                  </div>
+                </div>
+                <div class="attachment-info">
+                  <div class="attachment-name">{{ attachment.name || 'Fichier sans nom' }}</div>
+                  <div class="attachment-meta">
+                    <span class="attachment-size">{{ formatFileSize(attachment.size) }}</span>
+                    <span class="attachment-type">{{ getFileTypeName(attachment.type) }}</span>
+                  </div>
+                </div>
+                <div class="attachment-action">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                    <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tags -->
+          <div v-if="selectedArticle.tags?.length" class="article-tags">
+            <h3>Tags</h3>
+            <div class="tags-list">
+              <span v-for="tag in selectedArticle.tags" :key="tag" class="article-tag">
+                #{{ tag }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -165,6 +279,7 @@ const selectedCategory = ref('')
 const sortBy = ref('date-desc')
 const currentPage = ref(1)
 const articlesPerPage = 8
+const selectedArticle = ref(null)
 
 onMounted(() => {
   loadNews()
@@ -307,7 +422,62 @@ const handleSearch = () => { currentPage.value = 1 }
 const handleFilter = () => { currentPage.value = 1 }
 const handleSort = () => { currentPage.value = 1 }
 const changePage = (p) => { if (p >=1 && p <= totalPages.value) currentPage.value = p }
-const openArticle = (a) => { console.log('open', a) }
+
+const openArticle = (article) => {
+  console.log('📖 Ouverture de l\'article:', article.title)
+  selectedArticle.value = article
+  // Bloquer le scroll du body
+  document.body.style.overflow = 'hidden'
+}
+
+const closeArticle = () => {
+  console.log('❌ Fermeture de l\'article')
+  selectedArticle.value = null
+  // Restaurer le scroll du body
+  document.body.style.overflow = 'auto'
+}
+
+const formatContent = (content) => {
+  if (!content) return ''
+  // Convertir les retours à la ligne en <br>
+  return content.replace(/\n/g, '<br>')
+}
+
+const downloadAttachment = (attachment) => {
+  console.log('📎 Téléchargement de:', attachment.name)
+  if (attachment.url) {
+    window.open(attachment.url, '_blank')
+  } else if (attachment.data) {
+    // Si c'est des données en base64
+    const link = document.createElement('a')
+    link.href = attachment.data
+    link.download = attachment.name || 'fichier'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } else {
+    console.warn('Aucune URL de téléchargement disponible pour:', attachment)
+  }
+}
+
+const formatFileSize = (bytes) => {
+  if (!bytes) return 'Taille inconnue'
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1048576) return Math.round(bytes / 1024) + ' KB'
+  return Math.round(bytes / 1048576) + ' MB'
+}
+
+const getFileTypeName = (mimeType) => {
+  if (!mimeType) return 'Fichier'
+  if (mimeType.startsWith('image/')) return 'Image'
+  if (mimeType.startsWith('video/')) return 'Vidéo'
+  if (mimeType.startsWith('audio/')) return 'Audio'
+  if (mimeType.includes('pdf')) return 'PDF'
+  if (mimeType.includes('word') || mimeType.includes('document')) return 'Document'
+  if (mimeType.includes('spreadsheet') || mimeType.includes('excel')) return 'Tableur'
+  if (mimeType.includes('presentation') || mimeType.includes('powerpoint')) return 'Présentation'
+  return 'Fichier'
+}
 
 const formatDate = (dateStr) => {
   if (!dateStr) return ''
@@ -974,5 +1144,375 @@ watch([activeOrgTab, searchQuery, selectedCategory, sortBy], () => { currentPage
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-weight: 500;
+}
+
+/* Modal de lecture d'article */
+.article-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.article-modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 4xl;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.article-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 2rem 2rem 0 2rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.article-title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.3;
+  margin: 0;
+  flex: 1;
+}
+
+.close-button {
+  background: #f3f4f6;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: #6b7280;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.close-button:hover {
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.article-modal-meta {
+  padding: 1rem 2rem;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.meta-info {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.meta-details {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.author {
+  font-weight: 500;
+  color: #4b5563;
+}
+
+.article-modal-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.article-excerpt {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.article-excerpt h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 0.75rem 0;
+}
+
+.article-excerpt p {
+  color: #6b7280;
+  line-height: 1.6;
+  font-style: italic;
+  margin: 0;
+}
+
+.article-content {
+  margin-bottom: 2rem;
+}
+
+.article-content h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 1rem 0;
+}
+
+.article-content div {
+  color: #374151;
+  line-height: 1.7;
+  font-size: 1rem;
+}
+
+.no-content {
+  color: #9ca3af;
+  font-style: italic;
+  text-align: center;
+  padding: 2rem;
+  background: #f9fafb;
+  border-radius: 8px;
+  border: 1px dashed #d1d5db;
+}
+
+.article-attachments {
+  margin-bottom: 2rem;
+}
+
+.article-attachments h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.article-attachments h3::before {
+  content: '📎';
+  font-size: 1rem;
+}
+
+.attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.attachment-item:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+}
+
+.attachment-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.attachment-preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.file-icon {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.file-icon.video {
+  background: #fef3c7;
+  color: #f59e0b;
+}
+
+.file-icon.audio {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.file-icon.doc {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.attachment-info {
+  flex: 1;
+}
+
+.attachment-name {
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 0.25rem;
+}
+
+.attachment-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.attachment-action {
+  color: #6b7280;
+  transition: color 0.2s ease;
+}
+
+.attachment-item:hover .attachment-action {
+  color: #374151;
+}
+
+.article-tags {
+  margin-bottom: 2rem;
+}
+
+.article-tags h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.article-tags h3::before {
+  content: '🏷️';
+  font-size: 1rem;
+}
+
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.article-tag {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: white;
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.article-tag:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.3);
+}
+
+/* Responsive pour le modal */
+@media (max-width: 768px) {
+  .article-modal {
+    margin: 0;
+    border-radius: 0;
+    max-height: 100vh;
+    height: 100vh;
+  }
+
+  .article-modal-header {
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
+  }
+
+  .article-title {
+    font-size: 1.5rem;
+  }
+
+  .article-modal-meta {
+    padding: 1rem 1.5rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .article-modal-content {
+    padding: 1.5rem;
+  }
+
+  .attachment-item {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+
+  .attachment-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .attachment-meta {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .article-modal-overlay {
+    padding: 0;
+  }
+
+  .article-modal-header {
+    padding: 1rem;
+  }
+
+  .article-title {
+    font-size: 1.25rem;
+  }
+
+  .article-modal-meta {
+    padding: 1rem;
+  }
+
+  .article-modal-content {
+    padding: 1rem;
+  }
+
+  .meta-info {
+    flex-wrap: wrap;
+  }
+
+  .meta-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
 }
 </style>

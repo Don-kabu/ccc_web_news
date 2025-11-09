@@ -1,5 +1,5 @@
 <template>
-  <div class="notifications-panel">
+  <div class="notifications-panel" :class="{ 'dark': isDark }">
     <div class="notifications-header">
       <h3>Notifications</h3>
       <div class="header-actions">
@@ -88,6 +88,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { notificationService } from '../services/notificationService.js'
+import { useTheme } from '../composables/useTheme.js'
+
+// Composable pour le thème
+const { isDark } = useTheme()
 
 const props = defineProps({
   currentUser: {
@@ -189,10 +193,90 @@ onUnmounted(() => {
 .notifications-panel {
   width: 100%;
   max-width: 400px;
-  background: white;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  transition: all 0.3s ease;
+  
+  /* Variables CSS pour le mode clair */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
+  --bg-hover: #f9fafb;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --border-primary: #e5e7eb;
+  --border-secondary: #f3f4f6;
+  --shadow-primary: 0 8px 32px rgba(0, 0, 0, 0.1);
+  --shadow-secondary: 0 4px 16px rgba(0, 0, 0, 0.08);
+  
+  /* Couleurs des notifications */
+  --unread-bg: #fef7ff;
+  --urgent-bg: #fef2f2;
+  --digest-bg: #f0f9ff;
+  --unread-border: #6366f1;
+  --urgent-border: #ef4444;
+  --digest-border: #0ea5e9;
+  
+  /* Couleurs des icônes */
+  --icon-bg: #f3f4f6;
+  --icon-text: #6b7280;
+  --urgent-icon-bg: #fef2f2;
+  --urgent-icon-text: #ef4444;
+  --digest-icon-bg: #f0f9ff;
+  --digest-icon-text: #0ea5e9;
+  
+  /* Couleurs des actions */
+  --action-bg: #f3f4f6;
+  --action-text: #6b7280;
+  --action-hover-bg: #16a34a;
+  --action-hover-text: #ffffff;
+  --settings-hover-bg: #f8faff;
+  --settings-hover-border: #6366f1;
+  --settings-hover-text: #6366f1;
+  
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-primary);
+}
+
+.notifications-panel.dark {
+  /* Variables CSS pour le mode sombre */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --bg-hover: #1e293b;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-primary: #334155;
+  --border-secondary: #475569;
+  --shadow-primary: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-secondary: 0 4px 16px rgba(0, 0, 0, 0.3);
+  
+  /* Couleurs des notifications pour le mode sombre */
+  --unread-bg: #312e81;
+  --urgent-bg: #7f1d1d;
+  --digest-bg: #164e63;
+  --unread-border: #6366f1;
+  --urgent-border: #dc2626;
+  --digest-border: #0284c7;
+  
+  /* Couleurs des icônes pour le mode sombre */
+  --icon-bg: #334155;
+  --icon-text: #94a3b8;
+  --urgent-icon-bg: #7f1d1d;
+  --urgent-icon-text: #f87171;
+  --digest-icon-bg: #164e63;
+  --digest-icon-text: #38bdf8;
+  
+  /* Couleurs des actions pour le mode sombre */
+  --action-bg: #334155;
+  --action-text: #94a3b8;
+  --action-hover-bg: #059669;
+  --action-hover-text: #ffffff;
+  --settings-hover-bg: #1e293b;
+  --settings-hover-border: #6366f1;
+  --settings-hover-text: #818cf8;
 }
 
 .notifications-header {
@@ -200,15 +284,17 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
+  border-bottom: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  transition: all 0.3s ease;
 }
 
 .notifications-header h3 {
   margin: 0;
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 1.125rem;
   font-weight: 600;
+  transition: color 0.3s ease;
 }
 
 .header-actions {
@@ -226,6 +312,17 @@ onUnmounted(() => {
   border-radius: 9999px;
   min-width: 1.5rem;
   text-align: center;
+  box-shadow: var(--shadow-secondary);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
 }
 
 .mark-all-read {
@@ -235,26 +332,51 @@ onUnmounted(() => {
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: color 0.2s ease;
+  transition: all 0.3s ease;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
 }
 
 .mark-all-read:hover {
   color: #4f46e5;
+  background: var(--settings-hover-bg);
 }
 
 .notifications-list {
   max-height: 400px;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-secondary) transparent;
+}
+
+.notifications-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notifications-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notifications-list::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+  border-radius: 3px;
+}
+
+.notifications-list::-webkit-scrollbar-thumb:hover {
+  background: var(--border-primary);
 }
 
 .empty-state {
   text-align: center;
   padding: 3rem 1.5rem;
-  color: #9ca3af;
+  color: var(--text-muted);
+  transition: color 0.3s ease;
 }
 
 .empty-state svg {
   margin-bottom: 1rem;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
 }
 
 .empty-state p {
@@ -266,28 +388,56 @@ onUnmounted(() => {
   display: flex;
   gap: 1rem;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  position: relative;
 }
 
 .notification-item:hover {
-  background: #f9fafb;
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+
+.notification-item:last-child {
+  border-bottom: none;
 }
 
 .notification-item.unread {
-  background: #fef7ff;
-  border-left: 4px solid #6366f1;
+  background: var(--unread-bg);
+  border-left: 4px solid var(--unread-border);
+  animation: slideIn 0.3s ease;
 }
 
 .notification-item.urgent {
-  background: #fef2f2;
-  border-left: 4px solid #ef4444;
+  background: var(--urgent-bg);
+  border-left: 4px solid var(--urgent-border);
+  animation: urgentPulse 1s ease-in-out infinite;
 }
 
 .notification-item.digest {
-  background: #f0f9ff;
-  border-left: 4px solid #0ea5e9;
+  background: var(--digest-bg);
+  border-left: 4px solid var(--digest-border);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes urgentPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 var(--urgent-border);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2);
+  }
 }
 
 .notification-icon {
@@ -298,18 +448,19 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--icon-bg);
+  color: var(--icon-text);
+  transition: all 0.3s ease;
 }
 
 .notification-item.urgent .notification-icon {
-  background: #fef2f2;
-  color: #ef4444;
+  background: var(--urgent-icon-bg);
+  color: var(--urgent-icon-text);
 }
 
 .notification-item.digest .notification-icon {
-  background: #f0f9ff;
-  color: #0ea5e9;
+  background: var(--digest-icon-bg);
+  color: var(--digest-icon-text);
 }
 
 .notification-content {
@@ -319,14 +470,15 @@ onUnmounted(() => {
 
 .notification-title {
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary);
   font-size: 0.875rem;
   margin-bottom: 0.25rem;
   line-height: 1.3;
+  transition: color 0.3s ease;
 }
 
 .notification-text {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 0.875rem;
   line-height: 1.4;
   margin-bottom: 0.5rem;
@@ -335,6 +487,7 @@ onUnmounted(() => {
   line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  transition: color 0.3s ease;
 }
 
 .notification-meta {
@@ -342,15 +495,20 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.75rem;
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--text-muted);
+}
+
+.notification-time {
+  transition: color 0.3s ease;
 }
 
 .notification-type {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
   padding: 0.125rem 0.5rem;
   border-radius: 9999px;
   font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .notification-actions {
@@ -364,25 +522,29 @@ onUnmounted(() => {
   width: 32px;
   height: 32px;
   border: none;
-  background: #f3f4f6;
-  color: #6b7280;
+  background: var(--action-bg);
+  color: var(--action-text);
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  opacity: 0.7;
 }
 
 .mark-read-btn:hover {
-  background: #16a34a;
-  color: white;
+  background: var(--action-hover-bg);
+  color: var(--action-hover-text);
+  opacity: 1;
+  transform: scale(1.1);
 }
 
 .notifications-footer {
   padding: 1rem 1.5rem;
-  border-top: 1px solid #e5e7eb;
-  background: #f9fafb;
+  border-top: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  transition: all 0.3s ease;
 }
 
 .settings-btn {
@@ -393,21 +555,24 @@ onUnmounted(() => {
   gap: 0.75rem;
   padding: 0.75rem 1rem;
   background: none;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-primary);
   border-radius: 8px;
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .settings-btn:hover {
-  border-color: #6366f1;
-  color: #6366f1;
-  background: #f8faff;
+  border-color: var(--settings-hover-border);
+  color: var(--settings-hover-text);
+  background: var(--settings-hover-bg);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-secondary);
 }
 
+/* Media queries responsives conservées avec les nouvelles variables */
 @media (max-width: 768px) {
   .notifications-panel {
     max-width: none;
@@ -431,25 +596,13 @@ onUnmounted(() => {
     padding: 0.75rem 1rem;
   }
   
-  .notification-item h4 {
-    font-size: 0.9rem;
-  }
-  
-  .notification-item p {
-    font-size: 0.8rem;
-  }
-  
-  .notification-time {
-    font-size: 0.75rem;
-  }
-  
   .header-actions {
     flex-direction: column;
     gap: 0.5rem;
     align-items: flex-end;
   }
   
-  .header-actions button {
+  .mark-all-read {
     padding: 0.5rem 0.75rem;
     font-size: 0.8rem;
   }
@@ -473,30 +626,30 @@ onUnmounted(() => {
     padding: 0.6rem 0.75rem;
   }
   
-  .notification-item h4 {
+  .notification-title {
     font-size: 0.85rem;
     line-height: 1.3;
   }
   
-  .notification-item p {
+  .notification-text {
     font-size: 0.75rem;
   }
   
-  .notification-time {
+  .notification-meta {
     font-size: 0.7rem;
   }
   
-  .priority-badge {
+  .unread-badge {
     font-size: 0.7rem;
     padding: 0.2rem 0.4rem;
   }
   
-  .notification-dot {
-    width: 6px;
-    height: 6px;
+  .header-actions {
+    flex-direction: row;
+    gap: 0.25rem;
   }
   
-  .header-actions button {
+  .mark-all-read {
     padding: 0.4rem 0.6rem;
     font-size: 0.75rem;
   }
@@ -520,26 +673,21 @@ onUnmounted(() => {
     padding: 0.5rem;
   }
   
-  .notification-item h4 {
+  .notification-title {
     font-size: 0.8rem;
   }
   
-  .notification-item p {
+  .notification-text {
     font-size: 0.7rem;
   }
   
-  .header-actions {
-    flex-direction: row;
-    gap: 0.25rem;
-  }
-  
-  .header-actions button {
+  .mark-all-read {
     padding: 0.3rem 0.5rem;
     font-size: 0.7rem;
   }
 }
 
-/* Landscape orientation optimizations */
+/* Optimisations pour orientation paysage */
 @media (max-height: 500px) and (orientation: landscape) {
   .notifications-panel {
     max-height: 90vh;
@@ -553,5 +701,29 @@ onUnmounted(() => {
   .notification-item {
     padding: 0.5rem 1rem;
   }
+}
+
+/* Amélioration de l'accessibilité */
+@media (prefers-reduced-motion: reduce) {
+  .notifications-panel *,
+  .notifications-panel *::before,
+  .notifications-panel *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible pour l'accessibilité */
+.mark-read-btn:focus-visible,
+.settings-btn:focus-visible,
+.mark-all-read:focus-visible {
+  outline: 2px solid var(--unread-border);
+  outline-offset: 2px;
+}
+
+.notification-item:focus-visible {
+  outline: 2px solid var(--unread-border);
+  outline-offset: -2px;
 }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="home-page">
+  <div class="home-page" :class="{ 'dark': isDark }">
     <!-- Section hero -->
     <section class="hero-section">
       <div class="hero-content">
@@ -13,7 +13,7 @@
         <div class="hero-stats">
           <div class="stat-item">
             <span class="stat-number">{{ newsCount }}</span>
-            <span class="stat-label">Articles</span>
+            <span class="stat-label">News</span>
           </div>
           <div class="stat-item">
             <span class="stat-number">{{ studentsCount }}</span>
@@ -108,7 +108,7 @@
           </div>
           
           <h3 class="article-title">{{ article.title }}</h3>
-          <p class="article-excerpt">{{ article.content.substring(0, 150) }}...</p>
+          <p class="article-excerpt">{{ (article.content || '').substring(0, 150) }}{{ (article.content || '').length > 150 ? '...' : '' }}</p>
           
           <div class="card-footer">
             <div class="article-tags" v-if="article.tags">
@@ -116,7 +116,7 @@
                 {{ tag }}
               </span>
             </div>
-            <button class="read-more">
+            <button class="read-more" @click="readArticle(article)">
               Lire la suite
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
                 <path d="M7 17L17 7" stroke="currentColor" stroke-width="2"/>
@@ -366,7 +366,14 @@ const openArticle = (article) => {
 }
 
 // Définir les émissions
-const emit = defineEmits(['tab-change'])
+const emit = defineEmits(['tab-change', 'read-article'])
+
+// Fonctions
+const readArticle = (article) => {
+  console.log('📖 Lecture article depuis HomePage:', article.title)
+  // Émettre l'événement pour lire l'article
+  emit('read-article', article)
+}
 </script>
 
 <style scoped>

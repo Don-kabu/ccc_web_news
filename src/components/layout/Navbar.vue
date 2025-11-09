@@ -1,6 +1,6 @@
 <template>
-  <nav class="navbar">
-    <div class="navbar-container">
+  <nav class="navbar" :class="{ 'dark': isDark }">
+    <div class="navbar-container" >
       <!-- Logo et nom -->
       <div class="navbar-brand">
         <div class="logo">
@@ -80,17 +80,25 @@
       </div>
 
       <!-- Menu utilisateur -->
-      <div class="navbar-user">
+      <div class="navbar-user" >
         <!-- Bouton de thème -->
         <ThemeToggle />
         
         <!-- Bouton notifications -->
-        <!-- Notifications -->
-        <NotificationBell 
-          :current-user="currentUser"
-          @notification-click="handleNotificationClick"
-          @view-all="handleViewAllNotifications"
-        />
+        <div class="notifications-wrapper">
+          <!-- Indicateur au-dessus -->
+          <div v-if="props.unreadCount > 0" class="notification-indicator">
+            <span class="indicator-count">{{ props.unreadCount > 99 ? '99+' : props.unreadCount }}</span>
+            <span class="indicator-label">Non lues</span>
+          </div>
+          
+          <!-- NotificationBell -->
+          <NotificationBell 
+            :current-user="currentUser"
+            @notification-click="handleNotificationClick"
+            @view-all="handleViewAllNotifications"
+          />
+        </div>
 
         <div class="user-dropdown" :class="{ open: showUserMenu }">
           <button @click="toggleUserMenu" class="user-button">
@@ -161,8 +169,12 @@
 import { ref, computed } from 'vue'
 import { usePermissions } from '../../composables/usePermissions.js'
 import { PERMISSIONS } from '../../composables/usePermissions.js'
+import { useTheme } from '../../composables/useTheme.js'
 import NotificationBell from '../NotificationBell.vue'
 import ThemeToggle from '../ui/ThemeToggle.vue'
+
+// Composable pour le thème
+const { isDark } = useTheme()
 
 const props = defineProps({
   currentUser: {
@@ -173,6 +185,10 @@ const props = defineProps({
     type: String,
     required: true
   },
+  unreadCount: {
+    type: Number,
+    default: 0
+  }
 })
 
 const emit = defineEmits(['tab-change', 'logout', 'profile-click', 'settings-click', 'notifications-click', 'notification-click', 'view-all-notifications'])
@@ -238,13 +254,75 @@ const handleViewAllNotifications = () => {
 
 <style scoped>
 .navbar {
-  background-color: var(--color-nav-bg);
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--color-border-primary);
-  box-shadow: var(--shadow-lg);
+  border-bottom: 1px solid var(--border-primary);
   position: sticky;
   top: 0;
   z-index: 100;
+  transition: all 0.3s ease;
+  
+  /* Variables CSS pour le mode clair */
+  --bg-primary: rgba(255, 255, 255, 0.95);
+  --bg-secondary: rgba(243, 244, 246, 0.8);
+  --bg-tertiary: rgba(255, 255, 255, 0.8);
+  --bg-hover: rgba(255, 255, 255, 0.95);
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --border-primary: rgba(226, 232, 240, 0.8);
+  --border-secondary: rgba(255, 255, 255, 0.3);
+  --shadow-primary: 0 8px 32px rgba(15, 23, 42, 0.1);
+  --shadow-secondary: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --shadow-tertiary: 0 2px 8px rgba(99, 102, 241, 0.3);
+  
+  /* Couleurs d'accent */
+  --accent-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --accent-shadow: rgba(99, 102, 241, 0.3);
+  --logo-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  
+  /* États des boutons */
+  --nav-tab-hover-bg: rgba(255, 255, 255, 0.7);
+  --user-button-hover-bg: rgba(255, 255, 255, 0.95);
+  --dropdown-bg: rgba(255, 255, 255, 0.95);
+  --dropdown-hover-bg: rgba(248, 250, 252, 0.8);
+  --logout-color: #ef4444;
+  --logout-hover-bg: rgba(239, 68, 68, 0.1);
+  --admin-color: #3b82f6;
+  --admin-hover-bg: rgba(59, 130, 246, 0.1);
+  
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-primary);
+}
+
+.navbar.dark {
+  /* Variables CSS pour le mode sombre */
+  --bg-primary: rgba(15, 23, 42, 0.95);
+  --bg-secondary: rgba(30, 41, 59, 0.8);
+  --bg-tertiary: rgba(51, 65, 85, 0.8);
+  --bg-hover: rgba(30, 41, 59, 0.95);
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-primary: rgba(51, 65, 85, 0.8);
+  --border-secondary: rgba(71, 85, 105, 0.3);
+  --shadow-primary: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --shadow-secondary: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-tertiary: 0 2px 8px rgba(99, 102, 241, 0.4);
+  
+  /* Couleurs d'accent pour le mode sombre */
+  --accent-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  --accent-shadow: rgba(99, 102, 241, 0.4);
+  --logo-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+  
+  /* États des boutons pour le mode sombre */
+  --nav-tab-hover-bg: rgba(51, 65, 85, 0.7);
+  --user-button-hover-bg: rgba(30, 41, 59, 0.95);
+  --dropdown-bg: rgba(15, 23, 42, 0.95);
+  --dropdown-hover-bg: rgba(30, 41, 59, 0.8);
+  --logout-color: #f87171;
+  --logout-hover-bg: rgba(248, 113, 113, 0.15);
+  --admin-color: #60a5fa;
+  --admin-hover-bg: rgba(96, 165, 250, 0.15);
 }
 
 .navbar-container {
@@ -266,36 +344,45 @@ const handleViewAllNotifications = () => {
 .logo {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  border-radius: var(--radius-lg);
+  background: var(--accent-primary);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  box-shadow: var(--logo-shadow);
+  transition: all 0.3s ease;
+}
+
+.logo:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px var(--accent-shadow);
 }
 
 .brand-info h2 {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--color-nav-text);
+  color: var(--text-primary);
   margin: 0;
   line-height: 1.2;
+  transition: color 0.3s ease;
 }
 
 .brand-subtitle {
   font-size: 0.75rem;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   font-weight: 500;
+  transition: color 0.3s ease;
 }
 
 .navbar-nav {
   display: flex;
   gap: 0.5rem;
-  background: rgba(243, 244, 246, 0.8);
+  background: var(--bg-secondary);
   padding: 0.5rem;
-  border-radius: var(--radius-xl);
+  border-radius: 16px;
   backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
 }
 
 .nav-tab {
@@ -305,25 +392,47 @@ const handleViewAllNotifications = () => {
   padding: 0.75rem 1.5rem;
   background: transparent;
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: 12px;
   color: var(--text-secondary);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.875rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.nav-tab::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--nav-tab-hover-bg);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.nav-tab:hover::before {
+  opacity: 1;
 }
 
 .nav-tab:hover {
-  background: rgba(255, 255, 255, 0.7);
   color: var(--text-primary);
   transform: translateY(-1px);
 }
 
 .nav-tab.active {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: var(--accent-primary);
   color: white;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  box-shadow: var(--shadow-secondary);
   transform: translateY(-1px);
+}
+
+.nav-tab.active::before {
+  display: none;
 }
 
 .navbar-user {
@@ -331,19 +440,6 @@ const handleViewAllNotifications = () => {
   display: flex;
   align-items: center;
   gap: 1rem;
-}
-
-/* Notifications styles removed - using NotificationBell component */
-
-/* .user-dropdown {} */
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
 }
 
 .user-dropdown {
@@ -355,29 +451,31 @@ const handleViewAllNotifications = () => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: var(--radius-xl);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 20px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
 }
 
 .user-button:hover {
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  background: var(--user-button-hover-bg);
+  box-shadow: var(--shadow-secondary);
   transform: translateY(-1px);
 }
 
 .user-avatar {
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: var(--accent-primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  box-shadow: var(--shadow-tertiary);
+  transition: all 0.3s ease;
 }
 
 .user-info {
@@ -391,17 +489,19 @@ const handleViewAllNotifications = () => {
   color: var(--text-primary);
   font-size: 0.875rem;
   line-height: 1.2;
+  transition: color 0.3s ease;
 }
 
 .user-role {
   font-size: 0.75rem;
   color: var(--text-muted);
   font-weight: 500;
+  transition: color 0.3s ease;
 }
 
 .dropdown-arrow {
   color: var(--text-muted);
-  transition: transform 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .user-dropdown.open .dropdown-arrow {
@@ -412,13 +512,13 @@ const handleViewAllNotifications = () => {
   position: absolute;
   top: calc(100% + 0.5rem);
   right: 0;
-  background: var(--background-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  background: var(--dropdown-bg);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  box-shadow: var(--shadow-primary);
   min-width: 200px;
   overflow: hidden;
-  animation: dropdownSlide 0.2s ease-out;
+  animation: dropdownSlide 0.3s ease-out;
   backdrop-filter: blur(20px);
 }
 
@@ -433,49 +533,81 @@ const handleViewAllNotifications = () => {
   color: var(--text-primary);
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+
+.dropdown-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  right: 0;
+  bottom: 0;
+  background: var(--dropdown-hover-bg);
+  transition: left 0.3s ease;
+  z-index: -1;
+}
+
+.dropdown-item:hover::before {
+  left: 0;
 }
 
 .dropdown-item:hover {
-  background: var(--background-primary);
   transform: translateX(2px);
 }
 
 .dropdown-item.logout {
-  color: #ef4444;
+  color: var(--logout-color);
 }
 
-.dropdown-item.logout:hover {
-  background: rgba(239, 68, 68, 0.1);
+.dropdown-item.logout::before {
+  background: var(--logout-hover-bg);
 }
 
 .dropdown-item.admin-manage {
-  color: #3b82f6;
+  color: var(--admin-color);
   font-weight: 500;
 }
 
-.dropdown-item.admin-manage:hover {
-  background: rgba(59, 130, 246, 0.1);
+.dropdown-item.admin-manage::before {
+  background: var(--admin-hover-bg);
 }
 
 .dropdown-divider {
   height: 1px;
-  background: var(--border-color);
+  background: var(--border-primary);
   margin: 0.25rem 0;
 }
 
 @keyframes dropdownSlide {
   from {
     opacity: 0;
-    transform: translateY(-0.5rem);
+    transform: translateY(-0.5rem) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
+/* Pulse animation pour éléments importants */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.logo:active {
+  animation: pulse 0.2s ease;
+}
+
+/* Media queries responsives avec les nouvelles variables */
 @media (max-width: 768px) {
   .navbar-container {
     padding: 1rem;
@@ -491,7 +623,7 @@ const handleViewAllNotifications = () => {
     display: none;
   }
   
-  .nav-tabs {
+  .navbar-nav {
     order: 3;
     width: 100%;
     flex-wrap: wrap;
@@ -535,14 +667,14 @@ const handleViewAllNotifications = () => {
     font-size: 0.9rem;
   }
   
-  .nav-tabs {
+  .navbar-nav {
     gap: 0.25rem;
   }
   
   .nav-tab {
     padding: 0.5rem 0.75rem;
     font-size: 0.75rem;
-    border-radius: 6px;
+    border-radius: 8px;
   }
   
   .nav-tab svg {
@@ -550,12 +682,14 @@ const handleViewAllNotifications = () => {
     height: 16px;
   }
   
-  .nav-tabs {
-    gap: 0.5rem;
-  }
-  
   .user-button {
     padding: 0.5rem;
+    border-radius: 16px;
+  }
+  
+  .user-avatar {
+    width: 36px;
+    height: 36px;
   }
   
   .user-avatar svg {
@@ -579,6 +713,11 @@ const handleViewAllNotifications = () => {
     padding: 0.5rem;
   }
   
+  .logo {
+    width: 40px;
+    height: 40px;
+  }
+  
   .brand-info h2 {
     font-size: 0.8rem;
   }
@@ -592,28 +731,165 @@ const handleViewAllNotifications = () => {
     width: 14px;
     height: 14px;
   }
+  
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+  }
+  
+  .user-avatar svg {
+    width: 18px;
+    height: 18px;
+  }
 }
 
-/* Landscape orientation optimizations */
+/* Optimisations pour orientation paysage */
 @media (max-height: 500px) and (orientation: landscape) {
   .navbar-container {
     padding: 0.5rem 1rem;
   }
   
-  .nav-tabs {
+  .logo {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .navbar-nav {
     flex-wrap: nowrap;
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
   
-  .nav-tabs::-webkit-scrollbar {
+  .navbar-nav::-webkit-scrollbar {
     display: none;
   }
   
   .nav-tab {
     flex-shrink: 0;
     white-space: nowrap;
+  }
+}
+
+/* Amélioration de l'accessibilité */
+@media (prefers-reduced-motion: reduce) {
+  .navbar *,
+  .navbar *::before,
+  .navbar *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus visible pour l'accessibilité */
+.nav-tab:focus-visible,
+.user-button:focus-visible,
+.dropdown-item:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Effets de hover plus prononcés pour de meilleurs contrastes */
+.navbar.dark .nav-tab:hover {
+  background: rgba(51, 65, 85, 0.8);
+}
+
+.navbar.dark .user-button:hover {
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+/* Scrollbar pour la navigation responsive */
+.navbar-nav::-webkit-scrollbar {
+  height: 4px;
+}
+
+.navbar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.navbar-nav::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: 2px;
+}
+
+.navbar-nav::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Wrapper et indicateur de notifications */
+.notifications-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.notification-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 0.75rem;
+  line-height: 1;
+  color: #374151;
+  transition: all 0.2s ease;
+}
+
+.navbar.dark .notification-indicator {
+  color: #d1d5db;
+}
+
+.indicator-count {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+  font-size: 0.7rem;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.indicator-label {
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin-top: 0.125rem;
+  opacity: 0.8;
+}
+
+.navbar.dark .indicator-label {
+  color: #9ca3af;
+}
+
+/* Animation de pulsation pour attirer l'attention */
+@keyframes pulse-glow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(239, 68, 68, 0.5);
+  }
+}
+
+/* Responsive pour l'indicateur */
+@media (max-width: 768px) {
+  .notification-indicator {
+    font-size: 0.7rem;
+  }
+  
+  .indicator-count {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.3rem;
+  }
+  
+  .indicator-label {
+    font-size: 0.55rem;
   }
 }
 </style>

@@ -60,7 +60,14 @@ export class OtpService {
           message: 'Code OTP envoyé avec succès. Vérifiez votre boîte email.',
           expiresIn: 300 // 5 minutes en secondes
         })
-      } else {
+      } else if(response.status === 409) {
+        // Erreur 409 (conflit) - extraire le message de response.data
+        let message = response.data.message || 'Un conflit est survenu'
+        
+        throw new Error(message)  
+        
+      }
+      else {
         throw new Error(response.message || 'Erreur lors de l\'envoi de l\'OTP')
       }
     } catch (error) {
@@ -68,6 +75,22 @@ export class OtpService {
       
       if (error.status === 400) {
         throw new Error('Adresse email invalide')
+      } else if (error.status === 409) {
+        // Erreur 409 (conflit) - extraire le message de response.data
+        let message = 'Un conflit est survenu'
+        
+        if (error.response) {
+          // Essayer de récupérer le message depuis différentes structures possibles
+          if (typeof error.response.data === 'string') {
+            message = error.response.data
+          } else if (error.response.data && typeof error.response.data === 'object') {
+            message = error.response.data.message || error.response.data
+          } else if (error.response.message) {
+            message = error.response.message
+          }
+        }
+        
+        throw new Error(message)
       } else if (error.status === 429) {
         throw new Error('Trop de tentatives. Veuillez patienter avant de réessayer.')
       } else if (error.status >= 500) {

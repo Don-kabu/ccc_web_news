@@ -1,5 +1,5 @@
 <template>
-  <div class="email-verification-container">
+  <div class="email-verification-container" :class="{ 'dark': isDark }">
     <!-- Étape 1: Saisie de l'email -->
     <div v-if="!otpSent && !isVerified" class="email-input-step">
       <div class="step-header">
@@ -13,7 +13,7 @@
         <p>{{ verificationMessage }}</p>
       </div>
 
-      <div class="email-form">
+      <div class="email-form" :class="{ 'dark': isDark }">
         <div class="form-group">
           <label for="email-verification" class="form-label">Adresse email *</label>
           <div class="input-wrapper">
@@ -35,7 +35,7 @@
             />
           </div>
           <div v-if="emailError" class="field-error">
-            {{ emailError }}
+            {{ emailError }} ouf
           </div>
         </div>
 
@@ -174,6 +174,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { otpService } from '../../services/otp.service.js'
+import { useTheme } from '../../composables/useTheme.js'
+
+// Composable pour le thème
+const { isDark } = useTheme()
 
 // Props
 const props = defineProps({
@@ -243,7 +247,6 @@ const sendOtpCode = async () => {
   
   try {
     const response = await otpService.sendOtp(email.value)
-    
     if (response.status === 'success') {
       otpSent.value = true
       startCountdown(300) // 5 minutes
@@ -255,8 +258,11 @@ const sendOtpCode = async () => {
           otpInputs.value[0].focus()
         }
       }, 100)
+    } else {
+      sendError.value = response.message || 'Erreur lors de l\'envoi du code'
     }
   } catch (error) {
+    // L'erreur 409 avec le message de response.data est maintenant gérée dans le service
     sendError.value = error.message || 'Erreur lors de l\'envoi du code'
   } finally {
     isSending.value = false
@@ -383,6 +389,56 @@ defineExpose({
   width: 100%;
   max-width: 500px;
   margin: 0 auto;
+  
+  /* Variables CSS pour le mode clair */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --border-primary: #e2e8f0;
+  --border-secondary: #cbd5e1;
+  --shadow-light: rgba(15, 23, 42, 0.08);
+  --shadow-medium: rgba(15, 23, 42, 0.15);
+  
+  /* Couleurs des états */
+  --success-bg: rgba(34, 197, 94, 0.1);
+  --success-border: #22c55e;
+  --success-text: #16a34a;
+  --verified-bg: rgba(59, 130, 246, 0.1);
+  --verified-border: #3b82f6;
+  --verified-text: #2563eb;
+  --error-bg: rgba(239, 68, 68, 0.1);
+  --error-border: #ef4444;
+  --error-text: #dc2626;
+  --focus-ring: rgba(99, 102, 241, 0.1);
+}
+
+.email-verification-container.dark {
+  /* Variables CSS pour le mode sombre */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --border-primary: #334155;
+  --border-secondary: #475569;
+  --shadow-light: rgba(0, 0, 0, 0.3);
+  --shadow-medium: rgba(0, 0, 0, 0.5);
+  
+  /* Couleurs des états pour le mode sombre */
+  --success-bg: rgba(34, 197, 94, 0.15);
+  --success-border: #16a34a;
+  --success-text: #22c55e;
+  --verified-bg: rgba(59, 130, 246, 0.15);
+  --verified-border: #2563eb;
+  --verified-text: #3b82f6;
+  --error-bg: rgba(239, 68, 68, 0.15);
+  --error-border: #dc2626;
+  --error-text: #ef4444;
+  --focus-ring: rgba(99, 102, 241, 0.2);
 }
 
 .step-header {
@@ -397,41 +453,45 @@ defineExpose({
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: var(--background-secondary, #f8fafc);
-  border: 2px solid var(--border-color, #e2e8f0);
-  color: var(--text-muted, #64748b);
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-primary);
+  color: var(--text-muted);
   margin-bottom: 1rem;
+  transition: all 0.3s ease;
 }
 
 .step-icon.success {
-  background: rgba(34, 197, 94, 0.1);
-  border-color: #22c55e;
-  color: #22c55e;
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success-text);
 }
 
 .step-icon.verified {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: #3b82f6;
-  color: #3b82f6;
+  background: var(--verified-bg);
+  border-color: var(--verified-border);
+  color: var(--verified-text);
 }
 
 .step-header h3 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: var(--text-primary, #1a202c);
+  color: var(--text-primary);
   margin: 0 0 0.5rem 0;
+  transition: color 0.3s ease;
 }
 
 .step-header p {
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary);
   line-height: 1.5;
   margin: 0;
+  transition: color 0.3s ease;
 }
 
 .countdown {
   margin-top: 0.75rem;
   font-size: 0.875rem;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted);
+  transition: color 0.3s ease;
 }
 
 .form-group {
@@ -441,9 +501,10 @@ defineExpose({
 .form-label {
   display: block;
   font-weight: 600;
-  color: var(--text-primary, #1a202c);
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
   font-size: 0.875rem;
+  transition: color 0.3s ease;
 }
 
 .input-wrapper {
@@ -455,30 +516,35 @@ defineExpose({
 .input-icon {
   position: absolute;
   left: 1rem;
-  color: var(--text-muted, #64748b);
+  color: var(--text-muted);
   z-index: 1;
+  transition: color 0.3s ease;
 }
 
 .form-input {
   width: 100%;
   padding: 1rem 1rem 1rem 3rem;
-  border: 2px solid var(--border-color, #e2e8f0);
+  border: 2px solid var(--border-primary);
   border-radius: 0.75rem;
   font-size: 1rem;
-  background: var(--background-secondary, #f8fafc);
-  color: var(--text-primary, #1a202c);
-  transition: all 0.2s ease;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
 }
 
 .form-input:focus {
   outline: none;
   border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.form-input::placeholder {
+  color: var(--text-muted);
 }
 
 .form-input.error {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  border-color: var(--error-border);
+  box-shadow: 0 0 0 3px var(--error-bg);
 }
 
 .otp-input-section {
@@ -489,9 +555,10 @@ defineExpose({
 .otp-label {
   display: block;
   font-weight: 600;
-  color: var(--text-primary, #1a202c);
+  color: var(--text-primary);
   margin-bottom: 1rem;
   font-size: 0.875rem;
+  transition: color 0.3s ease;
 }
 
 .otp-inputs {
@@ -505,24 +572,24 @@ defineExpose({
   width: 3rem;
   height: 3rem;
   text-align: center;
-  border: 2px solid var(--border-color, #e2e8f0);
+  border: 2px solid var(--border-primary);
   border-radius: 0.75rem;
   font-size: 1.25rem;
   font-weight: 600;
-  background: var(--background-secondary, #f8fafc);
-  color: var(--text-primary, #1a202c);
-  transition: all 0.2s ease;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
 }
 
 .otp-digit:focus {
   outline: none;
   border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .otp-digit.error {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  border-color: var(--error-border);
+  box-shadow: 0 0 0 3px var(--error-bg);
 }
 
 .form-actions {
@@ -548,6 +615,7 @@ defineExpose({
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  box-shadow: 0 4px 12px var(--shadow-light);
 }
 
 .primary-button:hover:not(:disabled) {
@@ -559,24 +627,30 @@ defineExpose({
   opacity: 0.6;
   cursor: not-allowed;
   transform: none;
-  box-shadow: none;
+  box-shadow: 0 4px 12px var(--shadow-light);
 }
 
 .secondary-button {
   padding: 0.75rem 1.5rem;
   background: transparent;
-  color: var(--text-secondary, #64748b);
-  border: 2px solid var(--border-color, #e2e8f0);
+  color: var(--text-secondary);
+  border: 2px solid var(--border-primary);
   border-radius: 0.75rem;
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .secondary-button:hover:not(:disabled) {
-  border-color: var(--text-secondary, #64748b);
-  background: var(--background-secondary, #f8fafc);
+  border-color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.secondary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .link-button {
@@ -587,7 +661,7 @@ defineExpose({
   cursor: pointer;
   font-size: 0.875rem;
   padding: 0.5rem;
-  transition: color 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .link-button:hover:not(:disabled) {
@@ -615,12 +689,13 @@ defineExpose({
 }
 
 .field-error {
-  color: #ef4444;
+  color: var(--error-text);
   font-size: 0.875rem;
   margin-top: 0.5rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  transition: color 0.3s ease;
 }
 
 .field-error::before {
@@ -629,14 +704,15 @@ defineExpose({
 }
 
 .error-message {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: var(--error-text);
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
   padding: 0.75rem 1rem;
   border-radius: 0.5rem;
   font-size: 0.875rem;
   text-align: center;
   margin-top: 1rem;
+  transition: all 0.3s ease;
 }
 
 .resend-section {
@@ -658,5 +734,13 @@ defineExpose({
   .form-actions {
     gap: 0.75rem;
   }
+}
+
+/* Animations pour les transitions de thème */
+.email-verification-container * {
+  transition: background-color 0.3s ease, 
+              color 0.3s ease, 
+              border-color 0.3s ease, 
+              box-shadow 0.3s ease;
 }
 </style>
