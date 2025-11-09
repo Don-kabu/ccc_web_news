@@ -436,71 +436,118 @@ const cancelEditing = () => {
   })
 }
 
-// Sauvegarder le profil
+// Fermer la modal de changement de mot de passe
+const closePasswordModal = () => {
+  showPasswordModal.value = false
+  // Réinitialiser le formulaire de mot de passe
+  passwordForm.currentPassword = ''
+  passwordForm.newPassword = ''
+  passwordForm.confirmPassword = ''
+}
+
+// Charger le profil utilisateur depuis l'API
+const loadUserProfile = async () => {
+  try {
+    console.log('👤 Chargement du profil utilisateur depuis l\'API...')
+    
+    const token = localStorage.getItem('ccc_access_token')
+    if (!token) {
+      throw new Error('Token d\'authentification non disponible')
+    }
+
+    const response = await fetch('http://127.0.0.1:8000/api/v1/users/profile/', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`)
+    }
+
+    const profileData = await response.json()
+    console.log('✅ Données de profil reçues:', profileData)
+
+    if (profileData.success && profileData.data) {
+      // Émettre la mise à jour vers le composant parent
+      emit('user-updated', profileData.data)
+      
+      // Charger les statistiques séparément
+      await loadUserStats()
+    } else {
+      console.warn('⚠️ Structure de données de profil inattendue:', profileData)
+      await loadUserStats()
+    }
+
+  } catch (error) {
+    console.error('❌ Erreur lors du chargement du profil:', error)
+    showNotification('Erreur lors du chargement du profil', 'error')
+    // Fallback vers les statistiques uniquement
+    await loadUserStats()
+  }
+}
+
+// Sauvegarder le profil via l'API
 const saveProfile = async () => {
   isSaving.value = true
   
   try {
-    // Simulation d'une sauvegarde
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    console.log('💾 Sauvegarde du profil via l\'API...')
     
-    // Mettre à jour l'utilisateur
-    const updatedUser = {
-      ...props.currentUser,
-      firstName: editForm.firstName,
-      lastName: editForm.lastName,
+    const token = localStorage.getItem('ccc_access_token')
+    if (!token) {
+      throw new Error('Token d\'authentification non disponible')
+    }
+
+    const profileData = {
+      first_name: editForm.firstName,
+      last_name: editForm.lastName,
       email: editForm.email,
-      phone: editForm.phone,
-      lastModified: new Date().toISOString()
+      phone: editForm.phone
+    }
+
+    const response = await fetch('http://127.0.0.1:8000/api/v1/users/profile/', {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(profileData)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(`Erreur HTTP ${response.status}: ${errorData.message || response.statusText}`)
+    }
+
+    const updatedProfile = await response.json()
+    console.log('✅ Profil sauvegardé:', updatedProfile)
+
+    if (updatedProfile.success && updatedProfile.data) {
+      // Émettre l'événement de mise à jour vers le parent
+      emit('user-updated', updatedProfile.data)
+      
+      isEditing.value = false
+      showNotification('Profil mis à jour avec succès !', 'success')
+    } else {
+      throw new Error('Réponse API invalide')
     }
     
-    // Sauvegarder dans localStorage
-    updateUserInStorage(updatedUser)
-    
-    // Émettre l'événement de mise à jour
-    emit('user-updated', updatedUser)
-    
-    isEditing.value = false
-    
-    // Notification de succès
-    showNotification('Profil mis à jour avec succès !', 'success')
-    
   } catch (error) {
-    showNotification('Erreur lors de la sauvegarde du profil', 'error')
+    console.error('❌ Erreur lors de la sauvegarde du profil:', error)
+    showNotification(`Erreur lors de la sauvegarde: ${error.message}`, 'error')
   } finally {
     isSaving.value = false
   }
 }
 
-// Mettre à jour l'utilisateur dans le localStorage
-const updateUserInStorage = (updatedUser) => {
-  // Mettre à jour dans ccc_users
-  const users = JSON.parse(localStorage.getItem('ccc_users') || '[]')
-  const userIndex = users.findIndex(u => u.id === updatedUser.id)
-  
-  if (userIndex !== -1) {
-    users[userIndex] = updatedUser
-    localStorage.setItem('ccc_users', JSON.stringify(users))
-  }
-  
-  // Mettre à jour currentUser
-  localStorage.setItem('currentUser', JSON.stringify(updatedUser))
-}
-
-// Fermer le modal de mot de passe
-const closePasswordModal = () => {
-  showPasswordModal.value = false
-  passwordError.value = ''
-  Object.keys(passwordForm).forEach(key => {
-    passwordForm[key] = ''
-  })
-}
-
-// Changer le mot de passe
+// Changer le mot de passe via l'API
 const changePassword = async () => {
   passwordError.value = ''
   
-  // Validations
+  // Validations côté client
   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
     passwordError.value = 'Les mots de passe ne correspondent pas'
     return
@@ -511,32 +558,65 @@ const changePassword = async () => {
     return
   }
   
-  if (passwordForm.currentPassword !== props.currentUser.password) {
-    passwordError.value = 'Mot de passe actuel incorrect'
-    return
-  }
-  
   isChangingPassword.value = true
   
   try {
-    // Simulation du changement
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    console.log('🔐 Changement du mot de passe via l\'API...')
     
-    // Mettre à jour le mot de passe
-    const updatedUser = {
-      ...props.currentUser,
-      password: passwordForm.newPassword,
-      lastPasswordChange: new Date().toISOString()
+    const token = localStorage.getItem('ccc_access_token')
+    if (!token) {
+      throw new Error('Token d\'authentification non disponible')
+    }
+
+    const passwordData = {
+      current_password: passwordForm.currentPassword,
+      new_password: passwordForm.newPassword,
+      confirm_password: passwordForm.confirmPassword
+    }
+
+    const response = await fetch('http://127.0.0.1:8000/api/v1/users/change-password/', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(passwordData)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      
+      // Gestion des erreurs spécifiques de validation
+      if (response.status === 400 && errorData.errors) {
+        if (errorData.errors.current_password) {
+          passwordError.value = 'Mot de passe actuel incorrect'
+        } else if (errorData.errors.new_password) {
+          passwordError.value = errorData.errors.new_password[0]
+        } else {
+          passwordError.value = 'Erreur de validation des données'
+        }
+        return
+      }
+      
+      throw new Error(`Erreur HTTP ${response.status}: ${errorData.message || response.statusText}`)
+    }
+
+    const result = await response.json()
+    console.log('✅ Mot de passe changé:', result)
+
+    if (result.success) {
+      closePasswordModal()
+      showNotification('Mot de passe modifié avec succès !', 'success')
+    } else {
+      throw new Error('Réponse API invalide')
     }
     
-    updateUserInStorage(updatedUser)
-    emit('user-updated', updatedUser)
-    
-    closePasswordModal()
-    showNotification('Mot de passe modifié avec succès !', 'success')
-    
   } catch (error) {
-    passwordError.value = 'Erreur lors du changement de mot de passe'
+    console.error('❌ Erreur lors du changement de mot de passe:', error)
+    
+    if (!passwordError.value) {
+      passwordError.value = `Erreur: ${error.message}`
+    }
   } finally {
     isChangingPassword.value = false
   }
@@ -718,47 +798,12 @@ const loadUserStats = async () => {
       createDistributionChart()
     } else {
       console.warn('⚠️ Réponse API statistiques invalide:', response)
-      // Fallback vers l'ancienne méthode localStorage
-      loadUserStatsFromLocalStorage()
+      showNotification('Impossible de charger les statistiques', 'error')
     }
   } catch (error) {
     console.error('❌ Erreur chargement statistiques API:', error)
-    // Fallback vers localStorage en cas d'erreur
-    loadUserStatsFromLocalStorage()
+    showNotification('Erreur lors du chargement des statistiques', 'error')
   }
-}
-
-// Méthode fallback avec localStorage (ancienne méthode)
-const loadUserStatsFromLocalStorage = () => {
-  console.log('📊 Fallback: Chargement statistiques depuis localStorage')
-  const news = JSON.parse(localStorage.getItem('ccc_news') || '[]')
-  
-  userStats.value.articlesPublished = news.filter(
-    article => article.author_id === props.currentUser.id
-  ).length
-  
-  userStats.value.articlesModerated = news.filter(
-    article => article.moderator_id === props.currentUser.id
-  ).length
-  
-  // Valeurs par défaut pour les nouvelles métriques
-  userStats.value.totalViews = Math.floor(Math.random() * 1000) // Simulation
-  userStats.value.membershipDays = props.currentUser.createdAt 
-    ? Math.floor((new Date() - new Date(props.currentUser.createdAt)) / (1000 * 60 * 60 * 24))
-    : 30
-  
-  console.log('📊 Statistiques localStorage:', {
-    published: userStats.value.articlesPublished,
-    moderated: userStats.value.articlesModerated,
-    views: userStats.value.totalViews,
-    membershipDays: userStats.value.membershipDays
-  })
-  
-  // Créer les graphiques après le chargement
-  nextTick(() => {
-    createActivityChart()
-    createDistributionChart()
-  })
 }
 
 // Notification simple
@@ -769,6 +814,9 @@ const showNotification = (message, type) => {
 
 // Initialisation
 onMounted(async () => {
+  // Charger d'abord le profil utilisateur depuis l'API
+  await loadUserProfile()
+  // Puis charger les statistiques
   await loadUserStats()
 })
 

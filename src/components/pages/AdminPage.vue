@@ -357,6 +357,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { userService } from '../../services/user.service.js'
+import { newsService } from '../../services/news.service.js'
 
 const props = defineProps({
   currentUser: {
@@ -602,9 +603,6 @@ const loadStatistics = async () => {
   try {
     statsLoading.value = true
     console.log('🔄 Chargement des statistiques...')
-    
-    // Importer le service news
-    const { newsService } = await import('../../services/news.service.js')
     
     // Récupérer toutes les news pour les statistiques
     const response = await newsService.getNews({

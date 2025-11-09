@@ -15,11 +15,11 @@
             <span class="stat-number">{{ newsCount }}</span>
             <span class="stat-label">News</span>
           </div>
-          <div class="stat-item">
+          <div class="stat-item" v-if="currentUser.role=='ADMIN'||currentUser.role=='teacher'">
             <span class="stat-number">{{ studentsCount }}</span>
             <span class="stat-label">Étudiants</span>
           </div>
-          <div class="stat-item">
+          <div class="stat-item" v-if="currentUser.role=='ADMIN'||currentUser.role=='teacher'">
             <span class="stat-number">{{ teachersCount }}</span>
             <span class="stat-label">Publiants</span>
           </div>

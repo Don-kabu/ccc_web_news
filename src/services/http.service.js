@@ -1,5 +1,6 @@
 import { API_CONFIG, getAuthHeaders, buildApiUrl, createApiResponse, API_RESPONSE_TYPES, HTTP_STATUS } from './api.config.js'
 import { validateApiRequest, validateApiResponse } from './api-schema-validator.js'
+import { tokenService } from './token.service.js'
 
 // Classe pour gérer les erreurs API
 class ApiError extends Error {
@@ -131,10 +132,8 @@ class HttpService {
       
       console.log('🔄 Tentative de renouvellement automatique du token...')
       
-      // Import dynamique pour éviter la dépendance circulaire
-      const { authService } = await import('./auth.service.js')
-      
-      const tokenData = await authService.refreshToken()
+      // Utiliser le tokenService pour éviter la dépendance circulaire
+      const tokenData = await tokenService.refreshToken()
       
       if (tokenData && tokenData.access_token) {
         console.log('✅ Token renouvelé automatiquement')
